@@ -1,0 +1,24 @@
+Checks: "
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*-c,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  modernize-*,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nullptr,
+  -readability-identifier-length
+  "
+
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+
+WarningsAsErrors: '1'
+HeaderFilterRegex: ''
+FormatStyle:     none
+
