@@ -13,6 +13,11 @@ main (void)
   printf ("Vector Tests:\n");
   printf ("-----------------\n");
   run_vector_tests ();
+  printf ("-----------------\n");
+  printf ("File Tests:\n");
+  printf ("-----------------\n");
+  run_file_tests ();
+  printf ("-----------------\n");
 
   printf ("\nAll tests completed!\n");
   return 0;

@@ -25,6 +25,11 @@ typedef struct
   size_t elem_len;
 } vector_t;
 
+/**
+ * Gets the last vector operation error.
+ *
+ * @return Last error code
+ */
 [[nodiscard]] vector_result_t vector_get_error (void);
 
 /**

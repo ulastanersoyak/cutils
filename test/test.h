@@ -11,5 +11,6 @@ typedef void (*test_suite_fn) (void);
 
 void run_string_tests (void);
 void run_vector_tests (void);
+void run_file_tests (void);
 
 #endif

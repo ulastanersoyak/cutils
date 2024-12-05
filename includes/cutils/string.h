@@ -20,6 +20,11 @@ typedef struct
   size_t len;
 } string_t;
 
+/**
+ * Gets the last string operation error.
+ *
+ * @return Last error code
+ */
 [[nodiscard]] string_result_t string_get_error (void);
 
 /**
