@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 static thread_local string_result_t g_last_error = STRING_OK;
 
@@ -87,39 +88,6 @@ string_copy (const string_t *str)
     }
 
   return string_create (str->data, str->len);
-}
-
-[[nodiscard]] string_t *
-string_move (string_t *str)
-{
-  g_last_error = STRING_OK;
-
-  if (str == NULL)
-    {
-      g_last_error = STRING_NULL_PTR;
-      return NULL;
-    }
-
-  if (str->data == NULL)
-    {
-      g_last_error = STRING_INVALID_ARG;
-      return NULL;
-    }
-
-  string_t *new_str = (string_t *)malloc (sizeof (string_t));
-  if (new_str == NULL)
-    {
-      g_last_error = STRING_NO_MEMORY;
-      return NULL;
-    }
-
-  new_str->data = str->data;
-  new_str->len = str->len;
-
-  str->data = NULL;
-  str->len = 0;
-
-  return new_str;
 }
 
 void
@@ -625,7 +593,7 @@ string_find_last (const string_t *str, const string_t *pattern)
   return SIZE_MAX;
 }
 
-[[nodiscard]] bool
+bool
 string_contains (const string_t *str, const string_t *substr)
 {
   g_last_error = STRING_OK;

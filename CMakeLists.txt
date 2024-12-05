@@ -12,58 +12,62 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wpedantic
-  -Werror
-  -Wunused
-  -Wuninitialized
-  -Wshadow
-  -Wconversion
-  -Wduplicated-cond
-  -Wduplicated-branches
-  -Wlogical-op
-  -Wsign-conversion
-  -Wfloat-equal
-  -Wformat=2
-  -Wvla
-  -Wcast-align
-  -Wcast-qual
-  -Wmissing-declarations
-  -Wmissing-prototypes
-  -Wstrict-prototypes
-  -Wpointer-arith
-  -Wredundant-decls
-  -Wundef
-  -Wwrite-strings
-  -Wbad-function-cast
-  -Wjump-misses-init
-  -Wmissing-field-initializers
-  -Wnested-externs
-  -Wstrict-overflow=5
-  -Wno-missing-braces
-  -Wnull-dereference
-  -Wdouble-promotion
-  -Wformat-overflow=2)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 
-set(CMAKE_BUILD_TYPE Debug)
+set(WARNING_FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+    -Wunused
+    -Wuninitialized
+    -Wshadow
+    -Wconversion
+    -Wduplicated-cond
+    -Wduplicated-branches
+    -Wlogical-op
+    -Wsign-conversion
+    -Wfloat-equal
+    -Wformat=2
+    -Wvla
+    -Wcast-align
+    -Wcast-qual
+    -Wmissing-declarations
+    -Wmissing-prototypes
+    -Wstrict-prototypes
+    -Wpointer-arith
+    -Wredundant-decls
+    -Wundef
+    -Wwrite-strings
+    -Wbad-function-cast
+    -Wjump-misses-init
+    -Wmissing-field-initializers
+    -Wnested-externs
+    -Wstrict-overflow=5
+    -Wno-missing-braces
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wformat-overflow=2)
 
-add_library(cutils STATIC src/string.c)
+file(GLOB_RECURSE CUTILS_LIB_SOURCES CONFIGURE_DEPENDS src/*.c)
+
+add_library(cutils STATIC ${CUTILS_LIB_SOURCES})
 target_include_directories(cutils PUBLIC includes)
 
+target_compile_options(cutils PRIVATE ${WARNING_FLAGS} $<$<CONFIG:Debug>:-g>
+                                      $<$<CONFIG:Release>:-O2>)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  file(GLOB_RECURSE CUTILS_TEST_SOURCES CONFIGURE_DEPENDS test/*.c)
 
-  add_compile_options(-g)
+  add_executable(test ${CUTILS_TEST_SOURCES})
+  target_link_libraries(test PRIVATE cutils)
+  target_include_directories(
+    test
+    PRIVATE includes
+    PRIVATE test)
 
-  # only build tests in Debug mode
-  add_executable(test test/string.c test/test.c)
-  target_link_libraries(test cutils)
-  target_include_directories(test PUBLIC includes)
-  target_include_directories(test PUBLIC test)
-
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-
-  add_compile_options(-O2)
-
+  target_compile_options(test PRIVATE ${WARNING_FLAGS} -g)
 endif()

@@ -1,6 +1,7 @@
 #ifndef CUTILS_STRING_H
 #define CUTILS_STRING_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -51,17 +52,6 @@ typedef struct
  * @note Sets error to STRING_INVALID_ARG if str->data is NULL
  */
 [[nodiscard]] string_t *string_copy (const string_t *str);
-
-/**
- * Takes ownership of string data and creates new string.
- * Original string is invalidated (data set to NULL).
- *
- * @param str String to move from
- * @return New string containing moved data or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_move (string_t *str);
 
 /**
  * Frees all memory associated with string.
@@ -217,8 +207,7 @@ void string_destroy (string_t *str);
  * @note Sets error to STRING_NULL_PTR if either parameter is NULL
  * @note Sets error to STRING_INVALID_ARG if any string data is NULL
  */
-[[nodiscard]] bool string_contains (const string_t *str,
-                                    const string_t *substr);
+bool string_contains (const string_t *str, const string_t *substr);
 
 /**
  * Creates new string with characters in reverse order.
@@ -252,4 +241,4 @@ void string_destroy (string_t *str);
  */
 [[nodiscard]] string_t *string_from_int (int64_t value);
 
-#endif
+#endif // CUTILS_STRING_H

@@ -9,6 +9,10 @@ main (void)
   printf ("String Tests:\n");
   printf ("-----------------\n");
   run_string_tests ();
+  printf ("-----------------\n");
+  printf ("Vector Tests:\n");
+  printf ("-----------------\n");
+  run_vector_tests ();
 
   printf ("\nAll tests completed!\n");
   return 0;

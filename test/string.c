@@ -10,7 +10,6 @@
 static void test_string_create (void);
 static void test_string_from_cstr (void);
 static void test_string_copy (void);
-static void test_string_move (void);
 static void test_string_equals (void);
 static void test_string_starts_with (void);
 static void test_string_ends_with (void);
@@ -32,7 +31,6 @@ run_string_tests (void)
   test_string_create ();
   test_string_from_cstr ();
   test_string_copy ();
-  test_string_move ();
   test_string_equals ();
   test_string_starts_with ();
   test_string_ends_with ();
@@ -111,29 +109,6 @@ test_string_copy (void)
   assert (string_get_error () == STRING_NULL_PTR);
 
   TEST_PASS ("string_copy");
-}
-
-static void
-test_string_move (void)
-{
-  string_t *orig = string_from_cstr ("Move Test");
-  char *orig_data = orig->data;
-
-  string_t *moved = string_move (orig);
-  assert (moved != NULL);
-  assert (moved->data == orig_data);
-  assert (orig->data == NULL);
-  assert (orig->len == 0);
-
-  string_destroy (moved);
-  string_destroy (orig);
-
-  // test NULL input
-  moved = string_move (NULL);
-  assert (moved == NULL);
-  assert (string_get_error () == STRING_NULL_PTR);
-
-  TEST_PASS ("string_move");
 }
 
 static void
