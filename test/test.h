@@ -13,5 +13,6 @@ void run_string_tests (void);
 void run_vector_tests (void);
 void run_file_tests (void);
 void run_sort_tests (void);
+void run_expected_tests (void);
 
 #endif

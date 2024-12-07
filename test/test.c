@@ -1,9 +1,9 @@
 #include "test.h"
+#include <stdlib.h>
 
 int
 main (void)
 {
-
   printf ("\nRunning all test suites...\n\n");
 
   printf ("String Tests:\n");
@@ -22,7 +22,11 @@ main (void)
   printf ("-----------------\n");
   run_sort_tests ();
   printf ("-----------------\n");
+  printf ("Sort Tests:\n");
+  printf ("-----------------\n");
+  run_expected_tests ();
+  printf ("-----------------\n");
 
   printf ("\nAll tests completed!\n");
-  return 0;
+  return EXIT_SUCCESS;
 }
