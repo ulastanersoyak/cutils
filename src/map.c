@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static map_result_t last_error = MAP_OK;
+static map_result_t g_last_error = MAP_OK;
 
 [[nodiscard]] map_result_t
 map_get_error (void)
 {
-  return last_error;
+  return g_last_error;
 }
 
 [[nodiscard]] static size_t
@@ -29,16 +29,17 @@ map_create (size_t key_size, size_t value_size, size_t initial_capacity,
             map_hash_fn hash_fn, map_eq_fn eq_fn, map_free_fn key_free,
             map_free_fn value_free)
 {
+  g_last_error = MAP_OK;
   if (hash_fn == NULL || eq_fn == NULL)
     {
-      last_error = MAP_NULL_PTR;
+      g_last_error = MAP_NULL_PTR;
       return NULL;
     }
 
   map_t *map = (map_t *)malloc (sizeof (map_t));
   if (map == NULL)
     {
-      last_error = MAP_NO_MEMORY;
+      g_last_error = MAP_NO_MEMORY;
       return NULL;
     }
 
@@ -48,7 +49,7 @@ map_create (size_t key_size, size_t value_size, size_t initial_capacity,
   if (map->buckets == NULL)
     {
       free (map);
-      last_error = MAP_NO_MEMORY;
+      g_last_error = MAP_NO_MEMORY;
       return NULL;
     }
 
@@ -67,9 +68,11 @@ map_create (size_t key_size, size_t value_size, size_t initial_capacity,
 static map_entry_t *
 create_entry (const map_t *map, const void *key, const void *value)
 {
+  g_last_error = MAP_OK;
   map_entry_t *entry = (map_entry_t *)malloc (sizeof (map_entry_t));
   if (entry == NULL)
     {
+      g_last_error = MAP_NO_MEMORY;
       return NULL;
     }
 
@@ -77,6 +80,7 @@ create_entry (const map_t *map, const void *key, const void *value)
   if (entry->key == NULL)
     {
       free (entry);
+      g_last_error = MAP_NO_MEMORY;
       return NULL;
     }
 
@@ -85,6 +89,7 @@ create_entry (const map_t *map, const void *key, const void *value)
     {
       free (entry->key);
       free (entry);
+      g_last_error = MAP_NO_MEMORY;
       return NULL;
     }
 
@@ -111,15 +116,17 @@ free_entry (map_t *map, map_entry_t *entry)
   free (entry);
 }
 
-static map_result_t
+static map_entry_t *
 resize_map (map_t *map)
 {
+  g_last_error = MAP_OK;
   size_t new_capacity = map->bucket_count * 2;
   map_entry_t **new_buckets
       = (map_entry_t **)calloc (new_capacity, sizeof (map_entry_t *));
   if (new_buckets == NULL)
     {
-      return MAP_NO_MEMORY;
+      g_last_error = MAP_NO_MEMORY;
+      return NULL;
     }
 
   for (size_t i = 0; i < map->bucket_count; i++)
@@ -139,25 +146,25 @@ resize_map (map_t *map)
   map->buckets = new_buckets;
   map->bucket_count = new_capacity;
 
-  return MAP_OK;
+  return *map->buckets;
 }
 
-map_result_t
+map_t *
 map_insert (map_t *map, const void *key, const void *value)
 {
+  g_last_error = MAP_OK;
   if (map == NULL || key == NULL || value == NULL)
     {
-      last_error = MAP_NULL_PTR;
-      return MAP_NULL_PTR;
+      g_last_error = MAP_NULL_PTR;
+      return NULL;
     }
 
   float load_factor = (float)map->size / (float)map->bucket_count;
   if (load_factor >= 0.75f)
     {
-      map_result_t result = resize_map (map);
-      if (result != MAP_OK)
+      if (resize_map (map) == NULL)
         {
-          return result; // error is set by resize_map
+          return NULL; // error already set by resize_map
         }
     }
 
@@ -168,8 +175,8 @@ map_insert (map_t *map, const void *key, const void *value)
     {
       if (map->eq_fn (entry->key, key))
         {
-          last_error = MAP_DUPLICATE_KEY;
-          return MAP_DUPLICATE_KEY;
+          g_last_error = MAP_DUPLICATE_KEY;
+          return NULL;
         }
       entry = entry->next;
     }
@@ -177,25 +184,24 @@ map_insert (map_t *map, const void *key, const void *value)
   map_entry_t *new_entry = create_entry (map, key, value);
   if (new_entry == NULL)
     {
-      last_error = MAP_NO_MEMORY;
-      return MAP_NO_MEMORY;
+      return NULL; // error already set by create_entry
     }
 
   new_entry->next = map->buckets[index];
   map->buckets[index] = new_entry;
   map->size++;
 
-  last_error = MAP_OK;
-  return MAP_OK;
+  return map;
 }
 
-map_result_t
-map_get (const map_t *map, const void *key, void *value_out)
+void *
+map_get (const map_t *map, const void *key)
 {
-  if (map == NULL || key == NULL || value_out == NULL)
+  g_last_error = MAP_OK;
+  if (map == NULL || key == NULL)
     {
-      last_error = MAP_NULL_PTR;
-      return MAP_NULL_PTR;
+      g_last_error = MAP_NULL_PTR;
+      return NULL;
     }
 
   size_t index = map->hash_fn (key) % map->bucket_count;
@@ -205,24 +211,31 @@ map_get (const map_t *map, const void *key, void *value_out)
     {
       if (map->eq_fn (entry->key, key))
         {
-          memcpy (value_out, entry->value, map->value_size);
-          last_error = MAP_OK;
-          return MAP_OK;
+          void *result = malloc (map->value_size);
+          if (result == NULL)
+            {
+              g_last_error = MAP_NO_MEMORY;
+              return NULL;
+            }
+          memcpy (result, entry->value, map->value_size);
+          g_last_error = MAP_OK;
+          return result;
         }
       entry = entry->next;
     }
 
-  last_error = MAP_KEY_NOT_FOUND;
-  return MAP_KEY_NOT_FOUND;
+  g_last_error = MAP_KEY_NOT_FOUND;
+  return NULL;
 }
 
-map_result_t
+map_t *
 map_remove (map_t *map, const void *key)
 {
+  g_last_error = MAP_OK;
   if (map == NULL || key == NULL)
     {
-      last_error = MAP_NULL_PTR;
-      return MAP_NULL_PTR;
+      g_last_error = MAP_NULL_PTR;
+      return NULL;
     }
 
   size_t index = map->hash_fn (key) % map->bucket_count;
@@ -243,22 +256,24 @@ map_remove (map_t *map, const void *key)
             }
           free_entry (map, entry);
           map->size--;
-          last_error = MAP_OK;
-          return MAP_OK;
+          g_last_error = MAP_OK;
+          return map;
         }
       prev = entry;
       entry = entry->next;
     }
 
-  last_error = MAP_KEY_NOT_FOUND;
-  return MAP_KEY_NOT_FOUND;
+  g_last_error = MAP_KEY_NOT_FOUND;
+  return NULL;
 }
 
 size_t
 map_size (const map_t *map)
 {
+  g_last_error = MAP_OK;
   if (map == NULL)
     {
+      g_last_error = MAP_NULL_PTR;
       return 0;
     }
   return map->size;
@@ -267,9 +282,10 @@ map_size (const map_t *map)
 bool
 map_contains (const map_t *map, const void *key)
 {
+  g_last_error = MAP_OK;
   if (map == NULL || key == NULL)
     {
-      last_error = MAP_NULL_PTR;
+      g_last_error = MAP_NULL_PTR;
       return false;
     }
 
@@ -280,13 +296,12 @@ map_contains (const map_t *map, const void *key)
     {
       if (map->eq_fn (entry->key, key))
         {
-          last_error = MAP_OK;
+          g_last_error = MAP_OK;
           return true;
         }
       entry = entry->next;
     }
 
-  last_error = MAP_OK;
   return false;
 }
 

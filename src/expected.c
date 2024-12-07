@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static expected_result_t last_error = EXPECTED_OK;
+static expected_result_t g_last_error = EXPECTED_OK;
 
 [[nodiscard]] expected_result_t
 expected_get_error (void)
 {
-  return last_error;
+  return g_last_error;
 }
 
 [[nodiscard]] expected_t *
@@ -16,20 +16,20 @@ expected_success (const void *value, size_t size)
 {
   if (value == NULL)
     {
-      last_error = EXPECTED_NULL_PTR;
+      g_last_error = EXPECTED_NULL_PTR;
       return NULL;
     }
 
   if (size == 0)
     {
-      last_error = EXPECTED_INVALID_ARG;
+      g_last_error = EXPECTED_INVALID_ARG;
       return NULL;
     }
 
   expected_t *success = (expected_t *)malloc (sizeof (expected_t));
   if (success == NULL)
     {
-      last_error = EXPECTED_NO_MEMORY;
+      g_last_error = EXPECTED_NO_MEMORY;
       return NULL;
     }
 
@@ -37,7 +37,7 @@ expected_success (const void *value, size_t size)
   if (success->data.value == NULL)
     {
       free (success);
-      last_error = EXPECTED_NO_MEMORY;
+      g_last_error = EXPECTED_NO_MEMORY;
       return NULL;
     }
 
@@ -51,20 +51,20 @@ expected_error (const void *error, size_t size)
 {
   if (error == NULL)
     {
-      last_error = EXPECTED_NULL_PTR;
+      g_last_error = EXPECTED_NULL_PTR;
       return NULL;
     }
 
   if (size == 0)
     {
-      last_error = EXPECTED_INVALID_ARG;
+      g_last_error = EXPECTED_INVALID_ARG;
       return NULL;
     }
 
   expected_t *failure = (expected_t *)malloc (sizeof (expected_t));
   if (failure == NULL)
     {
-      last_error = EXPECTED_NO_MEMORY;
+      g_last_error = EXPECTED_NO_MEMORY;
       return NULL;
     }
 
@@ -72,7 +72,7 @@ expected_error (const void *error, size_t size)
   if (failure->data.error == NULL)
     {
       free (failure);
-      last_error = EXPECTED_NO_MEMORY;
+      g_last_error = EXPECTED_NO_MEMORY;
       return NULL;
     }
 
@@ -86,7 +86,7 @@ expected_has_value (const expected_t *exp)
 {
   if (exp == NULL)
     {
-      last_error = EXPECTED_NULL_PTR;
+      g_last_error = EXPECTED_NULL_PTR;
       return false;
     }
   return exp->has_value;
@@ -97,13 +97,13 @@ expected_value (const expected_t *exp)
 {
   if (exp == NULL)
     {
-      last_error = EXPECTED_NULL_PTR;
+      g_last_error = EXPECTED_NULL_PTR;
       return NULL;
     }
 
   if (exp->has_value == false)
     {
-      last_error = EXPECTED_INVALID_VALUE;
+      g_last_error = EXPECTED_INVALID_VALUE;
       return NULL;
     }
 
@@ -115,13 +115,13 @@ expected_error_value (const expected_t *exp)
 {
   if (exp == NULL)
     {
-      last_error = EXPECTED_NULL_PTR;
+      g_last_error = EXPECTED_NULL_PTR;
       return NULL;
     }
 
   if (exp->has_value == true)
     {
-      last_error = EXPECTED_INVALID_VALUE;
+      g_last_error = EXPECTED_INVALID_VALUE;
       return NULL;
     }
 

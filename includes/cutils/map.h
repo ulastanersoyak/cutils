@@ -70,41 +70,44 @@ typedef struct
  * @param map Map to insert into
  * @param key Pointer to key to insert
  * @param value Pointer to value to insert
- * @return MAP_OK on success, error code on failure
+ * @return Map pointer on success, NULL on failure
  * @note Sets error to MAP_NULL_PTR if map, key or value is NULL
  * @note Sets error to MAP_NO_MEMORY if memory allocation fails
  * @note Sets error to MAP_DUPLICATE_KEY if key already exists
  */
-map_result_t map_insert (map_t *map, const void *key, const void *value);
+[[nodiscard]] map_t *map_insert (map_t *map, const void *key,
+                                 const void *value);
 
 /**
  * Gets a value from the map by key.
  *
  * @param map Map to get from
  * @param key Key to look up
- * @param value_out Pointer to store found value
- * @return MAP_OK on success, error code on failure
- * @note Sets error to MAP_NULL_PTR if map, key or value_out is NULL
+ * @return Pointer to newly allocated copy of value if found, NULL on failure
+ * @note Sets error to MAP_NULL_PTR if map or key is NULL
  * @note Sets error to MAP_KEY_NOT_FOUND if key doesn't exist
+ * @note Sets error to MAP_NO_MEMORY if memory allocation fails
+ * @note Caller is responsible for freeing the returned memory
  */
-map_result_t map_get (const map_t *map, const void *key, void *value_out);
+[[nodiscard]] void *map_get (const map_t *map, const void *key);
 
 /**
  * Removes a key-value pair from the map.
  *
  * @param map Map to remove from
  * @param key Key to remove
- * @return MAP_OK on success, error code on failure
+ * @return Map pointer on success, NULL on failure
  * @note Sets error to MAP_NULL_PTR if map or key is NULL
  * @note Sets error to MAP_KEY_NOT_FOUND if key doesn't exist
  */
-map_result_t map_remove (map_t *map, const void *key);
+[[nodiscard]] map_t *map_remove (map_t *map, const void *key);
 
 /**
  * Gets the number of key-value pairs in the map.
  *
  * @param map Map to get size of
- * @return Number of pairs, 0 if map is NULL
+ * @return Number of pairs
+ * @note Sets error to MAP_NULL_PTR if map is NULL
  */
 size_t map_size (const map_t *map);
 
