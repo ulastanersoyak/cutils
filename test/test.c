@@ -26,6 +26,10 @@ main (void)
   printf ("-----------------\n");
   run_expected_tests ();
   printf ("-----------------\n");
+  printf ("Map Tests:\n");
+  printf ("-----------------\n");
+  run_map_tests ();
+  printf ("-----------------\n");
 
   printf ("\nAll tests completed!\n");
   return EXIT_SUCCESS;

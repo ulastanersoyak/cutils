@@ -14,5 +14,6 @@ void run_vector_tests (void);
 void run_file_tests (void);
 void run_sort_tests (void);
 void run_expected_tests (void);
+void run_map_tests (void);
 
 #endif
