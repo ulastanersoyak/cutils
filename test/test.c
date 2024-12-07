@@ -30,6 +30,10 @@ main (void)
   printf ("-----------------\n");
   run_map_tests ();
   printf ("-----------------\n");
+  printf ("Stack Tests:\n");
+  printf ("-----------------\n");
+  run_stack_tests ();
+  printf ("-----------------\n");
 
   printf ("\nAll tests completed!\n");
   return EXIT_SUCCESS;
