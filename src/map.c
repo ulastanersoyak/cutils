@@ -30,6 +30,7 @@ map_create (size_t key_size, size_t value_size, size_t initial_capacity,
             map_free_fn value_free)
 {
   g_last_error = MAP_OK;
+
   if (hash_fn == NULL || eq_fn == NULL)
     {
       g_last_error = MAP_NULL_PTR;
@@ -69,6 +70,7 @@ static map_entry_t *
 create_entry (const map_t *map, const void *key, const void *value)
 {
   g_last_error = MAP_OK;
+
   map_entry_t *entry = (map_entry_t *)malloc (sizeof (map_entry_t));
   if (entry == NULL)
     {
@@ -198,6 +200,7 @@ void *
 map_get (const map_t *map, const void *key)
 {
   g_last_error = MAP_OK;
+
   if (map == NULL || key == NULL)
     {
       g_last_error = MAP_NULL_PTR;
@@ -232,6 +235,7 @@ map_t *
 map_remove (map_t *map, const void *key)
 {
   g_last_error = MAP_OK;
+
   if (map == NULL || key == NULL)
     {
       g_last_error = MAP_NULL_PTR;
@@ -271,6 +275,7 @@ size_t
 map_size (const map_t *map)
 {
   g_last_error = MAP_OK;
+
   if (map == NULL)
     {
       g_last_error = MAP_NULL_PTR;
@@ -283,6 +288,7 @@ bool
 map_contains (const map_t *map, const void *key)
 {
   g_last_error = MAP_OK;
+
   if (map == NULL || key == NULL)
     {
       g_last_error = MAP_NULL_PTR;

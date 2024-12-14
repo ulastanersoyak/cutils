@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-static sort_result_t last_error = SORT_OK;
+static sort_result_t g_last_error = SORT_OK;
 
 // utility function to set error and return false
 static bool
 set_error_and_return (sort_result_t error)
 {
-  last_error = error;
+  g_last_error = error;
   return false;
 }
 
@@ -41,7 +41,7 @@ swap_elements (char *a, char *b, size_t elem_size)
 sort_result_t
 sort_get_error (void)
 {
-  return last_error;
+  return g_last_error;
 }
 
 static void
@@ -84,10 +84,11 @@ bool
 sort_quick (void *array, size_t length, size_t elem_size,
             sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
-  last_error = SORT_OK;
   quicksort_recursive (array, length, elem_size, compare);
   return true;
 }
@@ -158,6 +159,8 @@ bool
 sort_merge (void *array, size_t length, size_t elem_size,
             sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
@@ -165,7 +168,6 @@ sort_merge (void *array, size_t length, size_t elem_size,
   if (!temp)
     return set_error_and_return (SORT_NO_MEMORY);
 
-  last_error = SORT_OK;
   bool result = mergesort_recursive (array, length, elem_size, compare, temp);
   free (temp);
 
@@ -200,10 +202,11 @@ bool
 sort_heap (void *array, size_t length, size_t elem_size,
            sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
-  last_error = SORT_OK;
   char *arr = array;
 
   for (int64_t i = (int64_t)(length / 2 - 1); i >= 0; i--)
@@ -223,10 +226,11 @@ bool
 sort_insertion (void *array, size_t length, size_t elem_size,
                 sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
-  last_error = SORT_OK;
   char *arr = array;
   char *key = malloc (elem_size);
   if (!key)
@@ -255,10 +259,11 @@ bool
 sort_shell (void *array, size_t length, size_t elem_size,
             sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
-  last_error = SORT_OK;
   char *arr = array;
   char *temp = malloc (elem_size);
   if (!temp)
@@ -320,10 +325,11 @@ bool
 sort_is_sorted (const void *array, size_t length, size_t elem_size,
                 sort_compare_fn compare)
 {
+  g_last_error = SORT_OK;
+
   if (!validate_params (array, length, elem_size, compare))
     return false;
 
-  last_error = SORT_OK;
   const char *arr = array;
 
   for (size_t i = 0; i < length - 1; i++)

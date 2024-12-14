@@ -14,6 +14,8 @@ expected_get_error (void)
 [[nodiscard]] expected_t *
 expected_success (const void *value, size_t size)
 {
+  g_last_error = EXPECTED_OK;
+
   if (value == NULL)
     {
       g_last_error = EXPECTED_NULL_PTR;
@@ -49,6 +51,8 @@ expected_success (const void *value, size_t size)
 [[nodiscard]] expected_t *
 expected_error (const void *error, size_t size)
 {
+  g_last_error = EXPECTED_OK;
+
   if (error == NULL)
     {
       g_last_error = EXPECTED_NULL_PTR;
@@ -84,6 +88,8 @@ expected_error (const void *error, size_t size)
 bool
 expected_has_value (const expected_t *exp)
 {
+  g_last_error = EXPECTED_OK;
+
   if (exp == NULL)
     {
       g_last_error = EXPECTED_NULL_PTR;
@@ -95,6 +101,8 @@ expected_has_value (const expected_t *exp)
 [[nodiscard]] void *
 expected_value (const expected_t *exp)
 {
+  g_last_error = EXPECTED_OK;
+
   if (exp == NULL)
     {
       g_last_error = EXPECTED_NULL_PTR;
@@ -113,6 +121,8 @@ expected_value (const expected_t *exp)
 [[nodiscard]] void *
 expected_error_value (const expected_t *exp)
 {
+  g_last_error = EXPECTED_OK;
+
   if (exp == NULL)
     {
       g_last_error = EXPECTED_NULL_PTR;

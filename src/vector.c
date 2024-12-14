@@ -17,6 +17,7 @@ vector_get_error (void)
 vector_create (size_t init_capacity, size_t elem_len)
 {
   g_last_error = VECTOR_OK;
+
   if (elem_len == 0)
     {
       g_last_error = VECTOR_INVALID_ARG;
@@ -154,6 +155,7 @@ bool
 vector_pop (vector_t *vec, void *out)
 {
   g_last_error = VECTOR_OK;
+
   if (vec == NULL)
     {
       g_last_error = VECTOR_NULL_PTR;

@@ -3,7 +3,6 @@ if(NOT DEFINED CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 23)
 endif()
 
-# Add option for shared library
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
 
 project(
@@ -53,10 +52,8 @@ set(WARNING_FLAGS
 
 file(GLOB_RECURSE CUTILS_LIB_SOURCES CONFIGURE_DEPENDS src/*.c)
 
-# Library type will be determined by BUILD_SHARED_LIBS
 add_library(cutils ${CUTILS_LIB_SOURCES})
 
-# Add position independent code flag if building shared library
 if(BUILD_SHARED_LIBS)
   set_property(TARGET cutils PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -69,9 +66,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   file(GLOB_RECURSE CUTILS_TEST_SOURCES CONFIGURE_DEPENDS test/*.c)
   add_executable(test ${CUTILS_TEST_SOURCES})
   target_link_libraries(test PRIVATE cutils)
-  target_include_directories(
-    test
-    PRIVATE includes
-    PRIVATE test)
+  target_include_directories(test PRIVATE includes test)
   target_compile_options(test PRIVATE ${WARNING_FLAGS} -g)
 endif()
