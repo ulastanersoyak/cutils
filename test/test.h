@@ -16,5 +16,6 @@ void run_sort_tests (void);
 void run_expected_tests (void);
 void run_map_tests (void);
 void run_stack_tests (void);
+void run_arena_tests (void);
 
 #endif

@@ -32,7 +32,6 @@ typedef struct
   size_t block_size;
   size_t total_size;
   size_t total_used;
-  bool allow_resize;
 } arena_t;
 
 /**
@@ -102,7 +101,7 @@ bool arena_reset (arena_t *arena);
  * @return Total allocated size in bytes or 0 on error
  * @note Sets error to ARENA_NULL_PTR if arena is NULL
  */
-size_t arena_total_size (const arena_t *arena);
+[[nodiscard]] size_t arena_total_size (const arena_t *arena);
 
 /**
  * Gets total memory currently used in arena.
@@ -111,36 +110,15 @@ size_t arena_total_size (const arena_t *arena);
  * @return Total used size in bytes or 0 on error
  * @note Sets error to ARENA_NULL_PTR if arena is NULL
  */
-size_t arena_used_size (const arena_t *arena);
+[[nodiscard]] size_t arena_used_size (const arena_t *arena);
 
 /**
- * Enables or disables arena auto-resizing.
+ * Gets the total number of blocks in the arena.
  *
- * @param arena Arena to modify
- * @param allow_resize true to enable resizing, false to disable
- * @return true if successful, false otherwise
+ * @param arena Arena to count blocks for
+ * @return Number of blocks in arena or 0 on error
  * @note Sets error to ARENA_NULL_PTR if arena is NULL
  */
-bool arena_set_resize (arena_t *arena, bool allow_resize);
-
-/**
- * Creates a temporary scope that can be rolled back.
- *
- * @param arena Arena to create scope in
- * @return Checkpoint that can be used to restore arena state
- * @note Sets error to ARENA_NULL_PTR if arena is NULL
- */
-[[nodiscard]] size_t arena_checkpoint (arena_t *arena);
-
-/**
- * Rolls back arena to previous checkpoint.
- *
- * @param arena Arena to roll back
- * @param checkpoint Checkpoint to restore to
- * @return true if successful, false otherwise
- * @note Sets error to ARENA_NULL_PTR if arena is NULL
- * @note Sets error to ARENA_INVALID_VALUE if checkpoint is invalid
- */
-bool arena_rollback (arena_t *arena, size_t checkpoint);
+[[nodiscard]] size_t arena_block_count (const arena_t *arena);
 
 #endif // CUTILS_ARENA_H
