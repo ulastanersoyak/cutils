@@ -5,7 +5,6 @@ int
 main (void)
 {
   printf ("\nrunning all test suites\n\n");
-
   printf ("-----------------\n");
   printf ("string tests:\n");
   printf ("-----------------\n");
@@ -38,6 +37,10 @@ main (void)
   printf ("arena tests:\n");
   printf ("-----------------\n");
   run_arena_tests ();
+  printf ("-----------------\n");
+  printf ("list tests:\n");
+  printf ("-----------------\n");
+  run_list_tests ();
   printf ("-----------------\n");
 
   printf ("\nall tests completed!\n");
