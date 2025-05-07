@@ -61,11 +61,3 @@ endif()
 target_include_directories(cutils PUBLIC includes)
 target_compile_options(cutils PRIVATE ${WARNING_FLAGS} $<$<CONFIG:Debug>:-g>
                                       $<$<CONFIG:Release>:-O2>)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  file(GLOB_RECURSE CUTILS_TEST_SOURCES CONFIGURE_DEPENDS test/*.c)
-  add_executable(test ${CUTILS_TEST_SOURCES})
-  target_link_libraries(test PRIVATE cutils)
-  target_include_directories(test PRIVATE includes test)
-  target_compile_options(test PRIVATE ${WARNING_FLAGS} -g)
-endif()
