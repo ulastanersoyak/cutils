@@ -1,10 +1,10 @@
 #ifndef CUTILS_LIST_H
 #define CUTILS_LIST_H
 
-#include "cutils/allocator.h"
-#include "cutils/config.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include "cutils/config.h"
+#include "cutils/allocator.h"
 
 typedef struct list_node
 {
@@ -49,8 +49,7 @@ typedef enum
  * @return Newly allocated list or NULL on error
  * @note Sets error to LIST_NO_MEMORY if allocation fails
  */
-[[nodiscard]] list_t *
-list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator);
+[[nodiscard]] list_t *list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator);
 
 /**
  * Creates a new empty list using the default allocator.
@@ -60,18 +59,6 @@ list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator);
  * @note Sets error to LIST_NO_MEMORY if allocation fails
  */
 [[nodiscard]] list_t *list_create (size_t elem_len);
-
-/**
- * @brief Create a deep copy of a list
- *
- * This function creates a new list and copies all elements from the source
- * list. The new list will have the same size and element order as the source
- * list.
- *
- * @param list Pointer to the source list
- * @return list_t* Pointer to the new list, or NULL if allocation failed
- */
-[[nodiscard]] list_t *list_copy (const list_t *list);
 
 /**
  * Destroys list and frees all allocated memory.
@@ -91,8 +78,7 @@ void list_destroy (list_t *list);
  * @note Sets error to LIST_NULL_PTR if list is NULL
  * @note Sets error to LIST_NO_MEMORY if allocation fails
  */
-bool list_push_front_timeout (list_t *list, const void *elem,
-                              uint32_t timeout_ms);
+bool list_push_front_timeout (list_t *list, const void *elem, uint32_t timeout_ms);
 
 /**
  * Inserts a new value at the front of the list.
@@ -115,8 +101,7 @@ bool list_push_front (list_t *list, const void *elem);
  * @note Sets error to LIST_NULL_PTR if list is NULL
  * @note Sets error to LIST_NO_MEMORY if allocation fails
  */
-bool list_push_back_timeout (list_t *list, const void *elem,
-                             uint32_t timeout_ms);
+bool list_push_back_timeout (list_t *list, const void *elem, uint32_t timeout_ms);
 
 /**
  * Inserts a new value at the back of the list.
@@ -227,8 +212,7 @@ bool list_set (list_t *list, size_t index, const void *elem);
  * @note Sets error to LIST_NO_MEMORY if allocation fails
  * @note Sets error to LIST_INVALID_ARG if index > size
  */
-bool list_insert_timeout (list_t *list, size_t index, const void *elem,
-                          uint32_t timeout_ms);
+bool list_insert_timeout (list_t *list, size_t index, const void *elem, uint32_t timeout_ms);
 
 /**
  * Inserts a value at the specified index.
