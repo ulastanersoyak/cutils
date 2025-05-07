@@ -17,8 +17,5 @@ Checks: "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
-
-WarningsAsErrors: '1'
-HeaderFilterRegex: ''
 FormatStyle:     none
 
