@@ -1,41 +1,37 @@
 # cutils
 
-A lightweight C utility library designed for embedded systems. It provides essential data structures and utilities with a focus on memory efficiency and safety.
+lightweight c utility library designed for embedded systems. it provides essential data structures and utilities with a focus on memory efficiency and safety.
 
-## Features
+## features
 
-- Memory-efficient data structures:
-  - Vector (dynamic array)
-  - List (linked list)
-  - Map (key-value store)
-  - Queue and Priority Queue
-  - Stack
-  - String utilities
+- memory-efficient data structures:
+  - vector (dynamic array)
+  - list (linked list)
+  - map (key-value store)
+  - queue and priority queue
+  - stack
+  - string utilities
 
-- Memory management:
-  - Static allocation support (64KB limit)
-  - Arena allocator
-  - Custom allocator interface
+- memory management:
+  - static allocation support (64KB limit by default)
+  - arena allocator
+  - custom allocator interface
 
-- Safety features:
-  - Bounds checking
-  - Overflow protection
-  - Null pointer checks
-  - Assertions
+- safety features:
+  - bounds checking
+  - overflow protection
+  - null pointer checks
+  - assertions
 
-- Real-time support:
-  - Bounded operation times
-  - Priority queue with custom comparison
-  - No dynamic memory by default
+- real-time support:
+  - bounded operation times
+  - priority queue with custom comparison
+  - no dynamic memory by default
 
-## Building
+## building
 
 ```bash
 mkdir build && cd build
 cmake ..
 make
 ```
-
-## License
-
-GNU General Public License v3.0 
