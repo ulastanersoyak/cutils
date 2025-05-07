@@ -1,249 +1,222 @@
 #ifndef CUTILS_STRING_H
 #define CUTILS_STRING_H
 
+#include "cutils/allocator.h"
+#include "cutils/config.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum
-{
-  STRING_OK,
-  STRING_NULL_PTR,
-  STRING_INVALID_ARG,
-  STRING_NO_MEMORY,
-  STRING_OVERFLOW
-} string_result_t;
-
 typedef struct
 {
   char *data;
-  size_t len;
+  size_t length;
+  size_t capacity;
+  cutils_allocator_t *allocator;
 } string_t;
+
+typedef enum
+{
+  STRING_OK = 0,
+  STRING_NULL_PTR = 1,
+  STRING_NO_MEMORY = 2,
+  STRING_INVALID_ARG = 3,
+  STRING_OVERFLOW = 4,
+  STRING_TIMEOUT = 5,
+  STRING_NOT_FOUND = 6
+} string_result_t;
+
+/**
+ * Creates a new string with the specified allocator.
+ *
+ * @param initial_capacity Initial capacity of the string
+ * @param allocator Allocator to use
+ * @return Newly allocated string or NULL on error
+ */
+string_t *string_create_with_allocator (size_t initial_capacity,
+                                        cutils_allocator_t *allocator);
+
+/**
+ * Creates a new string using the default allocator.
+ *
+ * @param initial_capacity Initial capacity of the string
+ * @return Newly allocated string or NULL on error
+ */
+string_t *string_create (size_t initial_capacity);
+
+/**
+ * Creates a new string from a C string with the specified allocator.
+ *
+ * @param str C string to copy
+ * @param allocator Allocator to use
+ * @return Newly allocated string or NULL on error
+ */
+string_t *string_from_cstr_with_allocator (const char *str,
+                                           cutils_allocator_t *allocator);
+
+/**
+ * Creates a new string from a C string using the default allocator.
+ *
+ * @param str C string to copy
+ * @return Newly allocated string or NULL on error
+ */
+string_t *string_from_cstr (const char *str);
+
+/**
+ * Destroys string and frees all allocated memory.
+ *
+ * @param str String to destroy
+ */
+void string_destroy (string_t *str);
+
+/**
+ * Appends a C string to the string with timeout.
+ *
+ * @param str String to append to
+ * @param append C string to append
+ * @param timeout_ms Timeout in milliseconds
+ * @return true if successful, false otherwise
+ */
+bool string_append_timeout (string_t *str, const char *append,
+                            uint32_t timeout_ms);
+
+/**
+ * Appends a C string to the string.
+ *
+ * @param str String to append to
+ * @param append C string to append
+ * @return true if successful, false otherwise
+ */
+bool string_append (string_t *str, const char *append);
+
+/**
+ * Appends a character to the string with timeout.
+ *
+ * @param str String to append to
+ * @param c Character to append
+ * @param timeout_ms Timeout in milliseconds
+ * @return true if successful, false otherwise
+ */
+bool string_append_char_timeout (string_t *str, char c, uint32_t timeout_ms);
+
+/**
+ * Appends a character to the string.
+ *
+ * @param str String to append to
+ * @param c Character to append
+ * @return true if successful, false otherwise
+ */
+bool string_append_char (string_t *str, char c);
+
+/**
+ * Gets the length of the string.
+ *
+ * @param str String to get length from
+ * @return Length of the string
+ */
+size_t string_length (const string_t *str);
+
+/**
+ * Gets the capacity of the string.
+ *
+ * @param str String to get capacity from
+ * @return Capacity of the string
+ */
+size_t string_capacity (const string_t *str);
+
+/**
+ * Checks if the string is empty.
+ *
+ * @param str String to check
+ * @return true if empty, false otherwise
+ */
+bool string_is_empty (const string_t *str);
+
+/**
+ * Clears the string.
+ *
+ * @param str String to clear
+ * @return true if successful, false otherwise
+ */
+bool string_clear (string_t *str);
+
+/**
+ * Gets the memory usage of the string.
+ *
+ * @param str String to get memory usage from
+ * @return Memory usage in bytes
+ */
+size_t string_memory_usage (const string_t *str);
+
+/**
+ * Checks if an operation would succeed without actually performing it.
+ *
+ * @param str String to check
+ * @param required_capacity Required capacity
+ * @return true if operation would succeed, false otherwise
+ */
+bool string_can_perform_operation (const string_t *str,
+                                   size_t required_capacity);
 
 /**
  * Gets the last string operation error.
  *
  * @return Last error code
  */
-[[nodiscard]] string_result_t string_get_error (void);
+string_result_t string_get_error (void);
 
 /**
- * Creates a new string of specified length from given data.
+ * Gets the C string representation of the string.
  *
- * @param data Pointer to the data to copy into the new string
- * @param len Length of the data in bytes
- * @return Newly allocated string or NULL on error
- * @note Sets error to STRING_NULL_PTR if data is NULL
- * @note Sets error to STRING_OVERFLOW if len is too large
- * @note Sets error to STRING_NO_MEMORY if memory allocation fails
+ * @param str String to get C string from
+ * @return C string representation
  */
-[[nodiscard]] string_t *string_create (const char *data, size_t len);
+const char *string_cstr (const string_t *str);
 
 /**
- * Creates a new string from a null-terminated C string.
+ * Finds a substring in the string.
  *
- * @param str Pointer to null-terminated string
- * @return Newly allocated string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
+ * @param str String to search in
+ * @param substr Substring to find
+ * @return Index of the substring or SIZE_MAX if not found
  */
-[[nodiscard]] string_t *string_from_cstr (const char *str);
+size_t string_find (const string_t *str, const char *substr);
 
 /**
- * Creates a deep copy of a string.
+ * Finds a character in the string.
  *
- * @param str String to copy
- * @return Newly allocated copy of string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
+ * @param str String to search in
+ * @param c Character to find
+ * @return Index of the character or SIZE_MAX if not found
  */
-[[nodiscard]] string_t *string_copy (const string_t *str);
+size_t string_find_char (const string_t *str, char c);
 
 /**
- * Frees all memory associated with string.
- *
- * @param str String to destroy
- * @note Sets error to STRING_NULL_PTR if str is NULL
- */
-void string_destroy (string_t *str);
-
-/**
- * Checks if two strings have identical content.
- *
- * @param first First string to compare
- * @param second Second string to compare
- * @return true if strings are equal, false otherwise
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- */
-[[nodiscard]] bool string_equals (const string_t *first,
-                                  const string_t *second);
-
-/**
- * Checks if string starts with given prefix.
- *
- * @param str String to check
- * @param prefix Prefix to look for
- * @return true if str starts with prefix, false otherwise
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- */
-[[nodiscard]] bool string_starts_with (const string_t *str,
-                                       const string_t *prefix);
-
-/**
- * Checks if string ends with given suffix.
- *
- * @param str String to check
- * @param suffix Suffix to look for
- * @return true if str ends with suffix, false otherwise
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- */
-[[nodiscard]] bool string_ends_with (const string_t *str,
-                                     const string_t *suffix);
-
-/**
- * Creates new string with whitespace removed from both ends.
- *
- * @param str String to trim
- * @return New trimmed string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_trim (const string_t *str);
-
-/**
- * Creates new string with whitespace removed from start.
- *
- * @param str String to trim
- * @return New left-trimmed string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_trim_left (const string_t *str);
-
-/**
- * Creates new string with whitespace removed from end.
- *
- * @param str String to trim
- * @return New right-trimmed string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_trim_right (const string_t *str);
-
-/**
- * Creates new string with all characters converted to uppercase.
- *
- * @param str String to convert
- * @return New uppercase string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_to_upper (const string_t *str);
-
-/**
- * Creates new string with all characters converted to lowercase.
- *
- * @param str String to convert
- * @return New lowercase string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_to_lower (const string_t *str);
-
-/**
- * Creates new string containing specified portion of input string.
+ * Gets a substring of the string.
  *
  * @param str String to get substring from
- * @param start Starting position of substring
+ * @param start Start index
  * @param length Length of substring
- * @return New substring or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL or indexes
- * invalid
+ * @return New string containing the substring or NULL on error
  */
-[[nodiscard]] string_t *string_substring (const string_t *str, size_t start,
-                                          size_t length);
+string_t *string_substring (const string_t *str, size_t start, size_t length);
 
 /**
- * Creates new string by concatenating two strings.
+ * Compares two strings.
  *
- * @param first First string
- * @param second Second string
- * @return New concatenated string or NULL on error
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- * @note Sets error to STRING_OVERFLOW if combined length too large
+ * @param str1 First string
+ * @param str2 Second string
+ * @return < 0 if str1 < str2, 0 if str1 == str2, > 0 if str1 > str2
  */
-[[nodiscard]] string_t *string_concat (const string_t *first,
-                                       const string_t *second);
+int string_compare (const string_t *str1, const string_t *str2);
 
 /**
- * Finds first occurrence of pattern in string.
+ * Compares a string with a C string.
  *
- * @param str String to search in
- * @param pattern Pattern to search for
- * @return Index of first occurrence or SIZE_MAX if not found
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
+ * @param str1 String
+ * @param str2 C string
+ * @return < 0 if str1 < str2, 0 if str1 == str2, > 0 if str1 > str2
  */
-[[nodiscard]] size_t string_find (const string_t *str,
-                                  const string_t *pattern);
-
-/**
- * Finds last occurrence of pattern in string.
- *
- * @param str String to search in
- * @param pattern Pattern to search for
- * @return Index of last occurrence or SIZE_MAX if not found
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- */
-[[nodiscard]] size_t string_find_last (const string_t *str,
-                                       const string_t *pattern);
-
-/**
- * Checks if string contains substring.
- *
- * @param str String to search in
- * @param substr Substring to search for
- * @return true if substring found, false otherwise
- * @note Sets error to STRING_NULL_PTR if either parameter is NULL
- * @note Sets error to STRING_INVALID_ARG if any string data is NULL
- */
-bool string_contains (const string_t *str, const string_t *substr);
-
-/**
- * Creates new string with characters in reverse order.
- *
- * @param str String to reverse
- * @return New reversed string or NULL on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL
- */
-[[nodiscard]] string_t *string_reverse (const string_t *str);
-
-/**
- * Converts string to 64-bit integer.
- *
- * @param str String to convert
- * @param success Pointer to bool to indicate success/failure
- * @return Converted integer value, 0 on error
- * @note Sets error to STRING_NULL_PTR if str is NULL
- * @note Sets error to STRING_INVALID_ARG if str->data is NULL or invalid
- * format
- * @note Sets error to STRING_OVERFLOW if value out of range
- */
-[[nodiscard]] int64_t string_to_int (const string_t *str, bool *success);
-
-/**
- * Creates new string from 64-bit integer.
- *
- * @param value Integer value to convert
- * @return New string containing number or NULL on error
- * @note Sets error to STRING_OVERFLOW if conversion fails
- */
-[[nodiscard]] string_t *string_from_int (int64_t value);
+int string_compare_cstr (const string_t *str1, const char *str2);
 
 #endif // CUTILS_STRING_H
