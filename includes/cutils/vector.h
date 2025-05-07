@@ -1,21 +1,10 @@
 #ifndef CUTILS_VECTOR_H
 #define CUTILS_VECTOR_H
 
+#include "cutils/allocator.h"
+#include "cutils/config.h"
 #include <stdbool.h>
 #include <stddef.h>
-
-typedef enum
-{
-  VECTOR_OK,
-  VECTOR_NULL_PTR,
-  VECTOR_INVALID_ARG,
-  VECTOR_NO_MEMORY,
-  VECTOR_OVERFLOW,
-  VECTOR_OUT_OF_RANGE
-} vector_result_t;
-
-#define VECTOR_INIT_CAPACITY 8
-#define VECTOR_GROWTH_FACTOR 2 // double the capacity when growing
 
 typedef struct
 {
@@ -23,7 +12,20 @@ typedef struct
   size_t len;
   size_t capacity;
   size_t elem_len;
+  cutils_allocator_t *allocator;
 } vector_t;
+
+typedef enum
+{
+  VECTOR_OK = 0,
+  VECTOR_NULL_PTR = 1,
+  VECTOR_NO_MEMORY = 2,
+  VECTOR_INVALID_ARG = 3,
+  VECTOR_OUT_OF_RANGE = 4,
+  VECTOR_OVERFLOW = 5,
+  VECTOR_TIMEOUT = 6,
+  VECTOR_PRIORITY_ERROR = 7
+} vector_result_t;
 
 /**
  * Gets the last vector operation error.
@@ -31,6 +33,17 @@ typedef struct
  * @return Last error code
  */
 [[nodiscard]] vector_result_t vector_get_error (void);
+
+/**
+ * Creates a new stack with the specified allocator.
+ *
+ * @param elem_size Size of each element in bytes
+ * @param initial_capacity Initial capacity of the vector
+ * @param allocator Allocator to use
+ * @return Newly allocated stack or NULL on error
+ */
+vector_t *vector_create_with_allocator (size_t init_capacity, size_t elem_len,
+                                        cutils_allocator_t *allocator);
 
 /**
  * Creates a new vector with specified element size and initial capacity.
@@ -183,5 +196,52 @@ bool vector_is_empty (const vector_t *vec);
  * @note Sets error to VECTOR_OUT_OF_RANGE if vector is empty
  */
 bool vector_back (const vector_t *vec, void *out);
+
+/**
+ * Gets the current length of the vector.
+ *
+ * @param vec Vector to get length from
+ * @return Current length of the vector
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ */
+size_t vector_length (const vector_t *vec);
+
+/**
+ * Gets the current capacity of the vector.
+ *
+ * @param vec Vector to get capacity from
+ * @return Current capacity of the vector
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ */
+size_t vector_capacity (const vector_t *vec);
+
+/**
+ * Gets the element size of the vector.
+ *
+ * @param vec Vector to get element size from
+ * @return Size of each element in the vector
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ */
+size_t vector_element_size (const vector_t *vec);
+
+/**
+ * Gets memory usage statistics of the vector.
+ *
+ * @param vec Vector to get memory usage from
+ * @return Memory usage of the vector in bytes
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ */
+size_t vector_memory_usage (const vector_t *vec);
+
+/**
+ * Checks if an operation would succeed without actually performing it.
+ *
+ * @param vec Vector to check
+ * @param required_capacity Minimum capacity required
+ * @return true if operation would succeed, false otherwise
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ */
+bool vector_can_perform_operation (const vector_t *vec,
+                                   size_t required_capacity);
 
 #endif // CUTILS_VECTOR_H
