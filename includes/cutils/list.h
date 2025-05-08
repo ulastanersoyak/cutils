@@ -61,6 +61,15 @@ typedef enum
 [[nodiscard]] list_t *list_create (size_t elem_len);
 
 /**
+ * Creates a copy of a list using the same allocator.
+ *
+ * @param list List to copy
+ * @return Newly allocated copy or NULL on error
+ * @note Sets error to LIST_NULL_PTR if list is NULL
+ */
+[[nodiscard]] list_t *list_copy (const list_t *list);
+
+/**
  * Destroys list and frees all allocated memory.
  *
  * @param list List to destroy
