@@ -49,8 +49,7 @@ list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator)
 list_t *
 list_create (size_t elem_len)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return list_create_with_allocator (elem_len, &default_allocator);
+  return list_create_with_allocator (elem_len, cutils_default_allocator ());
 }
 
 list_t *

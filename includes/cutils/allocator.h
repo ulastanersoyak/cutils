@@ -25,7 +25,12 @@ typedef struct
 void cutils_static_pool_init (cutils_static_pool_t *pool, void *memory,
                               size_t size, size_t alignment);
 
-/* Create default allocator based on configuration */
+/* Default allocator based on configuration. The returned pointer stays
+   valid for the lifetime of the program, so it can be stored in containers */
+cutils_allocator_t *cutils_default_allocator (void);
+
+/* Copy of the default allocator. Don't store a pointer to the copy in a
+   container that outlives it, use cutils_default_allocator instead */
 cutils_allocator_t cutils_create_default_allocator (void);
 
 /* Allocate memory with alignment */

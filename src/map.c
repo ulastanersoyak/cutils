@@ -200,9 +200,8 @@ map_t *
 map_create (size_t key_size, size_t value_size,
             int (*compare) (const void *a, const void *b))
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
   return map_create_with_allocator (key_size, value_size, compare,
-                                    &default_allocator);
+                                    cutils_default_allocator ());
 }
 
 static void

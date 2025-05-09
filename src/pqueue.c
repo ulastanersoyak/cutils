@@ -154,9 +154,8 @@ priority_queue_t *
 priority_queue_create (size_t elem_size, size_t initial_capacity,
                        int (*compare) (const void *a, const void *b))
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return priority_queue_create_with_allocator (elem_size, initial_capacity,
-                                               compare, &default_allocator);
+  return priority_queue_create_with_allocator (
+      elem_size, initial_capacity, compare, cutils_default_allocator ());
 }
 
 void

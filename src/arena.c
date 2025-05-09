@@ -73,8 +73,8 @@ arena_create_with_allocator (size_t size, size_t alignment,
 arena_t *
 arena_create (size_t size, size_t alignment)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return arena_create_with_allocator (size, alignment, &default_allocator);
+  return arena_create_with_allocator (size, alignment,
+                                      cutils_default_allocator ());
 }
 
 void

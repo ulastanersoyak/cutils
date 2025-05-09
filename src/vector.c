@@ -73,9 +73,8 @@ vector_create_with_allocator (size_t init_capacity, size_t elem_len,
 vector_t *
 vector_create (size_t init_capacity, size_t elem_len)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
   return vector_create_with_allocator (init_capacity, elem_len,
-                                       &default_allocator);
+                                       cutils_default_allocator ());
 }
 
 static bool

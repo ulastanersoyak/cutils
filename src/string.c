@@ -117,8 +117,8 @@ string_create_with_allocator (size_t initial_capacity,
 string_t *
 string_create (size_t initial_capacity)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return string_create_with_allocator (initial_capacity, &default_allocator);
+  return string_create_with_allocator (initial_capacity,
+                                       cutils_default_allocator ());
 }
 
 string_t *
@@ -149,8 +149,7 @@ string_from_cstr_with_allocator (const char *cstr,
 string_t *
 string_from_cstr (const char *cstr)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return string_from_cstr_with_allocator (cstr, &default_allocator);
+  return string_from_cstr_with_allocator (cstr, cutils_default_allocator ());
 }
 
 void

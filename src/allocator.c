@@ -69,27 +69,36 @@ cutils_static_pool_init (cutils_static_pool_t *pool, void *memory, size_t size,
   pool->alignment = alignment;
 }
 
+// containers keep a pointer to their allocator for their whole lifetime, so
+// the default one has to outlive every caller's stack frame
+static cutils_allocator_t g_default_allocator;
+static bool g_default_allocator_ready = false;
+
+cutils_allocator_t *
+cutils_default_allocator (void)
+{
+  if (!g_default_allocator_ready)
+    {
+#if CUTILS_USE_STATIC_ALLOCATION
+      cutils_static_pool_init (&g_default_pool, g_static_memory,
+                               CUTILS_MAX_STATIC_MEMORY, CUTILS_ALIGNMENT);
+      g_default_allocator.context = &g_default_pool;
+      g_default_allocator.allocate = static_allocate;
+      g_default_allocator.deallocate = static_deallocate;
+#else
+      g_default_allocator.context = NULL;
+      g_default_allocator.allocate = dynamic_allocate;
+      g_default_allocator.deallocate = dynamic_deallocate;
+#endif
+      g_default_allocator_ready = true;
+    }
+  return &g_default_allocator;
+}
+
 cutils_allocator_t
 cutils_create_default_allocator (void)
 {
-  cutils_allocator_t allocator;
-
-#if CUTILS_USE_STATIC_ALLOCATION
-  if (g_default_pool.memory == NULL)
-    {
-      cutils_static_pool_init (&g_default_pool, g_static_memory,
-                               CUTILS_MAX_STATIC_MEMORY, CUTILS_ALIGNMENT);
-    }
-  allocator.context = &g_default_pool;
-  allocator.allocate = static_allocate;
-  allocator.deallocate = static_deallocate;
-#else
-  allocator.context = NULL;
-  allocator.allocate = dynamic_allocate;
-  allocator.deallocate = dynamic_deallocate;
-#endif
-
-  return allocator;
+  return *cutils_default_allocator ();
 }
 
 void *

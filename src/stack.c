@@ -60,9 +60,8 @@ stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
 stack_t *
 stack_create (size_t elem_size, size_t initial_capacity)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
   return stack_create_with_allocator (elem_size, initial_capacity,
-                                      &default_allocator);
+                                      cutils_default_allocator ());
 }
 
 void

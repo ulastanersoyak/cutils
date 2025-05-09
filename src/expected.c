@@ -64,8 +64,7 @@ expected_create_with_allocator (size_t size, cutils_allocator_t *allocator)
 expected_t *
 expected_create (size_t size)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return expected_create_with_allocator (size, &default_allocator);
+  return expected_create_with_allocator (size, cutils_default_allocator ());
 }
 
 expected_t *
@@ -95,8 +94,8 @@ expected_from_data_with_allocator (const void *data, size_t size,
 expected_t *
 expected_from_data (const void *data, size_t size)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return expected_from_data_with_allocator (data, size, &default_allocator);
+  return expected_from_data_with_allocator (data, size,
+                                            cutils_default_allocator ());
 }
 
 expected_t *
@@ -125,8 +124,8 @@ expected_from_error_with_allocator (expected_result_t error,
 expected_t *
 expected_from_error (expected_result_t error)
 {
-  cutils_allocator_t default_allocator = cutils_create_default_allocator ();
-  return expected_from_error_with_allocator (error, &default_allocator);
+  return expected_from_error_with_allocator (error,
+                                             cutils_default_allocator ());
 }
 
 void
