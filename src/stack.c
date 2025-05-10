@@ -7,19 +7,6 @@
 
 static thread_local stack_result_t g_last_error = STACK_OK;
 
-static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
 stack_t *
 stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
                              cutils_allocator_t *allocator)
@@ -104,7 +91,7 @@ resize_if_needed (stack_t *stack, uint32_t timeout_ms)
       return false;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       cutils_deallocate (stack->allocator, new_data);
       g_last_error = STACK_TIMEOUT;

@@ -9,19 +9,6 @@
 
 static thread_local vector_result_t g_last_error = VECTOR_OK;
 
-static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
 vector_t *
 vector_create_with_allocator (size_t init_capacity, size_t elem_len,
                               cutils_allocator_t *allocator)
@@ -102,7 +89,7 @@ vector_push_timeout (vector_t *vec, const void *elem, uint32_t timeout_ms)
           return false;
         }
 
-      if (!check_timeout ((uint32_t)start_time, timeout_ms))
+      if (cutils_timeout_expired (start_time, timeout_ms))
         {
           g_last_error = VECTOR_TIMEOUT;
           return false;

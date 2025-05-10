@@ -5,19 +5,6 @@
 
 static thread_local list_result_t g_last_error = LIST_OK;
 
-static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
 list_t *
 list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator)
 {
@@ -136,7 +123,7 @@ list_push_front_timeout (list_t *list, const void *elem, uint32_t timeout_ms)
       return false;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       cutils_deallocate (list->allocator, node->data);
       cutils_deallocate (list->allocator, node);
@@ -199,7 +186,7 @@ list_push_back_timeout (list_t *list, const void *elem, uint32_t timeout_ms)
       return false;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       cutils_deallocate (list->allocator, node->data);
       cutils_deallocate (list->allocator, node);
@@ -419,7 +406,7 @@ list_insert_timeout (list_t *list, size_t index, const void *elem,
       return false;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       cutils_deallocate (list->allocator, node->data);
       cutils_deallocate (list->allocator, node);

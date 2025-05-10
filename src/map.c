@@ -7,19 +7,6 @@
 
 static thread_local map_result_t g_last_error = MAP_OK;
 
-static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
 // Red-black tree helper functions
 static void
 rotate_left (map_t *map, map_node_t *node)
@@ -284,7 +271,7 @@ map_insert_timeout (map_t *map, const void *key, const void *value,
       return false;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       cutils_deallocate (map->allocator, node->value);
       cutils_deallocate (map->allocator, node->key);

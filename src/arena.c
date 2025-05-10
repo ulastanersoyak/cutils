@@ -8,19 +8,6 @@
 
 static thread_local arena_result_t g_last_error = ARENA_OK;
 
-static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
 static size_t
 align_up (size_t size, size_t alignment)
 {
@@ -118,7 +105,7 @@ arena_alloc_timeout (arena_t *arena, size_t size, uint32_t timeout_ms)
       return NULL;
     }
 
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       g_last_error = ARENA_TIMEOUT;
       return NULL;

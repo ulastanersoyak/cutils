@@ -1,23 +1,11 @@
 #include "cutils/expected.h"
 #include "cutils/config.h"
+#include "cutils/time.h"
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
 
 static thread_local expected_result_t g_last_error = EXPECTED_OK;
-
-[[maybe_unused]] static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
 
 expected_t *
 expected_create_with_allocator (size_t size, cutils_allocator_t *allocator)

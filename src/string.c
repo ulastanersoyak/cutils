@@ -8,19 +8,6 @@
 static thread_local string_result_t g_last_error = STRING_OK;
 
 static bool
-check_timeout ([[maybe_unused]] uint32_t start_time_ms,
-               [[maybe_unused]] uint32_t timeout_ms)
-{
-#if CUTILS_PLATFORM_BARE_METAL
-  // Implement platform-specific time check
-  return true;
-#else
-  uint32_t current_time = get_current_time_ms ();
-  return (current_time - start_time_ms) <= timeout_ms;
-#endif
-}
-
-static bool
 resize_if_needed (string_t *str, size_t required_capacity, uint32_t timeout_ms)
 {
   if (str == NULL)
@@ -35,7 +22,7 @@ resize_if_needed (string_t *str, size_t required_capacity, uint32_t timeout_ms)
     }
 
   uint64_t start_time = cutils_get_current_time_ms ();
-  if (!check_timeout ((uint32_t)start_time, timeout_ms))
+  if (cutils_timeout_expired (start_time, timeout_ms))
     {
       g_last_error = STRING_TIMEOUT;
       return false;
