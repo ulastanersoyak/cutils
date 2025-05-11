@@ -1,44 +1,108 @@
 #ifndef CUTILS_CONFIG_H
 #define CUTILS_CONFIG_H
 
+/* Every option below can be overridden without editing this file, either on
+   the compiler command line (-DCUTILS_MAX_STATIC_MEMORY=4096) or by pointing
+   CUTILS_USER_CONFIG at a header that defines them:
+   -DCUTILS_USER_CONFIG=\"my_cutils_config.h\" */
+#ifdef CUTILS_USER_CONFIG
+#include CUTILS_USER_CONFIG
+#endif
+
 /* Memory Management Configuration */
+#ifndef CUTILS_USE_STATIC_ALLOCATION
 #define CUTILS_USE_STATIC_ALLOCATION 1
+#endif
+#ifndef CUTILS_USE_DYNAMIC_ALLOCATION
 #define CUTILS_USE_DYNAMIC_ALLOCATION 0
+#endif
+#ifndef CUTILS_MAX_STATIC_MEMORY
 #define CUTILS_MAX_STATIC_MEMORY (64 * 1024) // 64KB
+#endif
+#ifndef CUTILS_ALIGNMENT
 #define CUTILS_ALIGNMENT 8
+#endif
 
 /* Real-Time Configuration */
+#ifndef CUTILS_MAX_OPERATION_TIME_MS
 #define CUTILS_MAX_OPERATION_TIME_MS 1
+#endif
+#ifndef CUTILS_USE_PRIORITY_QUEUE
 #define CUTILS_USE_PRIORITY_QUEUE 1
+#endif
+#ifndef CUTILS_MAX_PRIORITY_LEVELS
 #define CUTILS_MAX_PRIORITY_LEVELS 8
+#endif
 
 /* Safety Features */
+#ifndef CUTILS_ENABLE_ASSERTIONS
 #define CUTILS_ENABLE_ASSERTIONS 1
+#endif
+#ifndef CUTILS_ENABLE_BOUNDS_CHECKING
 #define CUTILS_ENABLE_BOUNDS_CHECKING 1
+#endif
+#ifndef CUTILS_ENABLE_OVERFLOW_CHECKING
 #define CUTILS_ENABLE_OVERFLOW_CHECKING 1
+#endif
+#ifndef CUTILS_ENABLE_NULL_PTR_CHECKING
 #define CUTILS_ENABLE_NULL_PTR_CHECKING 1
+#endif
 
 /* Platform Configuration */
+#ifndef CUTILS_PLATFORM_BARE_METAL
 #define CUTILS_PLATFORM_BARE_METAL 1
+#endif
+#ifndef CUTILS_ENDIANNESS_LITTLE
 #define CUTILS_ENDIANNESS_LITTLE 1
+#endif
+#ifndef CUTILS_USE_CUSTOM_ALLOCATOR
 #define CUTILS_USE_CUSTOM_ALLOCATOR 1
+#endif
 
 /* Feature Flags */
+#ifndef CUTILS_ENABLE_THREAD_SAFETY
 #define CUTILS_ENABLE_THREAD_SAFETY 0
+#endif
+#ifndef CUTILS_ENABLE_EXCEPTIONS
 #define CUTILS_ENABLE_EXCEPTIONS 0
+#endif
+#ifndef CUTILS_ENABLE_LOGGING
 #define CUTILS_ENABLE_LOGGING 1
+#endif
 
 /* Error Handling */
+#ifndef CUTILS_USE_ERROR_CODES
 #define CUTILS_USE_ERROR_CODES 1
+#endif
+#ifndef CUTILS_MAX_ERROR_STRING_LEN
 #define CUTILS_MAX_ERROR_STRING_LEN 64
+#endif
 
 /* Vector Configuration */
+#ifndef CUTILS_VECTOR_INIT_CAPACITY
 #define CUTILS_VECTOR_INIT_CAPACITY 16
+#endif
+#ifndef CUTILS_VECTOR_MAX_CAPACITY
 #define CUTILS_VECTOR_MAX_CAPACITY 1024
+#endif
+#ifndef CUTILS_VECTOR_GROWTH_FACTOR
 #define CUTILS_VECTOR_GROWTH_FACTOR 2
+#endif
 
 /* Arena Configuration */
+#ifndef CUTILS_ARENA_DEFAULT_BLOCK_SIZE
 #define CUTILS_ARENA_DEFAULT_BLOCK_SIZE 1024
+#endif
+#ifndef CUTILS_ARENA_MAX_BLOCKS
 #define CUTILS_ARENA_MAX_BLOCKS 16
+#endif
+
+#if CUTILS_USE_STATIC_ALLOCATION == CUTILS_USE_DYNAMIC_ALLOCATION
+#error "enable exactly one of CUTILS_USE_STATIC_ALLOCATION and CUTILS_USE_DYNAMIC_ALLOCATION"
+#endif
+
+#if CUTILS_ALIGNMENT <= 0 || (CUTILS_ALIGNMENT & (CUTILS_ALIGNMENT - 1)) != 0
+#error "CUTILS_ALIGNMENT must be a power of two"
+#endif
 
 #endif /* CUTILS_CONFIG_H */
