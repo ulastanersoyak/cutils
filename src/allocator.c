@@ -1,6 +1,7 @@
 #include "cutils/allocator.h"
 #include "cutils/config.h"
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #if CUTILS_USE_STATIC_ALLOCATION
@@ -8,29 +9,47 @@ static uint8_t g_static_memory[CUTILS_MAX_STATIC_MEMORY];
 static cutils_static_pool_t g_default_pool;
 #endif
 
+static bool
+is_valid_alignment (size_t alignment)
+{
+  return alignment != 0 && (alignment & (alignment - 1)) == 0;
+}
+
+// bytes needed to move the end of the pool up to the next multiple of
+// alignment
+static size_t
+pool_padding (const cutils_static_pool_t *pool, size_t alignment)
+{
+  uintptr_t current = (uintptr_t)(pool->memory + pool->used);
+  return (size_t)((alignment - (current & (alignment - 1))) & (alignment - 1));
+}
+
+// written so that none of the additions can wrap around
+static bool
+pool_fits (const cutils_static_pool_t *pool, size_t size, size_t alignment)
+{
+  size_t free_space = pool->size - pool->used;
+  size_t padding = pool_padding (pool, alignment);
+  return padding <= free_space && size <= free_space - padding;
+}
+
 static void *
 static_allocate (void *context, size_t size, size_t alignment)
 {
   cutils_static_pool_t *pool = (cutils_static_pool_t *)context;
 
-  // Align the current position
-  size_t current = (size_t)(pool->memory + pool->used);
-  size_t aligned = (current + (alignment - 1)) & ~(alignment - 1);
-  size_t padding = aligned - current;
-
-  // Check if we have enough space
-  if (pool->used + padding + size > pool->size)
+  if (!pool_fits (pool, size, alignment))
     {
       return NULL;
     }
 
-  // Update used space
+  size_t padding = pool_padding (pool, alignment);
+  void *ptr = pool->memory + pool->used + padding;
   pool->used += padding + size;
-
-  return (void *)aligned;
+  return ptr;
 }
 
-static void
+[[maybe_unused]] static void
 static_deallocate (void *context, void *ptr)
 {
   // Static allocation doesn't support deallocation
@@ -44,7 +63,12 @@ dynamic_allocate ([[maybe_unused]] void *context, [[maybe_unused]] size_t size,
 {
   (void)context;
 #if CUTILS_USE_DYNAMIC_ALLOCATION
-  return aligned_alloc (alignment, size);
+  // aligned_alloc requires the size to be a multiple of the alignment
+  if (size > SIZE_MAX - (alignment - 1))
+    {
+      return NULL;
+    }
+  return aligned_alloc (alignment, (size + alignment - 1) & ~(alignment - 1));
 #else
   return NULL;
 #endif
@@ -105,7 +129,17 @@ void *
 cutils_allocate_aligned (cutils_allocator_t *allocator, size_t size,
                          size_t alignment)
 {
-  if (allocator == NULL || size == 0)
+  if (allocator == NULL || allocator->allocate == NULL || size == 0)
+    {
+      return NULL;
+    }
+
+  if (alignment == 0)
+    {
+      alignment = CUTILS_ALIGNMENT;
+    }
+
+  if (!is_valid_alignment (alignment))
     {
       return NULL;
     }
@@ -116,7 +150,7 @@ cutils_allocate_aligned (cutils_allocator_t *allocator, size_t size,
 void
 cutils_deallocate (cutils_allocator_t *allocator, void *ptr)
 {
-  if (allocator == NULL || ptr == NULL)
+  if (allocator == NULL || allocator->deallocate == NULL || ptr == NULL)
     {
       return;
     }
@@ -124,23 +158,23 @@ cutils_deallocate (cutils_allocator_t *allocator, void *ptr)
   allocator->deallocate (allocator->context, ptr);
 }
 
+// the statistics below only make sense for static pools. any other context
+// belongs to a user supplied allocator and has an unknown layout
+static cutils_static_pool_t *
+as_static_pool (const cutils_allocator_t *allocator)
+{
+  if (allocator == NULL || allocator->allocate != static_allocate)
+    {
+      return NULL;
+    }
+  return (cutils_static_pool_t *)allocator->context;
+}
+
 size_t
 cutils_get_memory_usage (cutils_allocator_t *allocator)
 {
-  if (allocator == NULL)
-    {
-      return 0;
-    }
-
-#if CUTILS_USE_STATIC_ALLOCATION
-  if (allocator->context)
-    {
-      cutils_static_pool_t *pool = (cutils_static_pool_t *)allocator->context;
-      return pool->used;
-    }
-#endif
-
-  return 0;
+  cutils_static_pool_t *pool = as_static_pool (allocator);
+  return pool != NULL ? pool->used : 0;
 }
 
 bool
@@ -152,33 +186,32 @@ cutils_can_allocate (cutils_allocator_t *allocator, size_t size,
       return false;
     }
 
-#if CUTILS_USE_STATIC_ALLOCATION
-  if (allocator->context)
+  if (alignment == 0)
     {
-      cutils_static_pool_t *pool = (cutils_static_pool_t *)allocator->context;
-      size_t current = (size_t)(pool->memory + pool->used);
-      size_t aligned = (current + (alignment - 1)) & ~(alignment - 1);
-      size_t padding = aligned - current;
-      return (pool->used + padding + size <= pool->size);
+      alignment = CUTILS_ALIGNMENT;
     }
-#endif
 
+  if (!is_valid_alignment (alignment))
+    {
+      return false;
+    }
+
+  cutils_static_pool_t *pool = as_static_pool (allocator);
+  if (pool != NULL)
+    {
+      return pool_fits (pool, size, alignment);
+    }
+
+  // other allocators can't be asked ahead of time
   return true;
 }
 
 void
 cutils_reset_allocator (cutils_allocator_t *allocator)
 {
-  if (allocator == NULL)
+  cutils_static_pool_t *pool = as_static_pool (allocator);
+  if (pool != NULL)
     {
-      return;
-    }
-
-#if CUTILS_USE_STATIC_ALLOCATION
-  if (allocator->context)
-    {
-      cutils_static_pool_t *pool = (cutils_static_pool_t *)allocator->context;
       pool->used = 0;
     }
-#endif
 }
