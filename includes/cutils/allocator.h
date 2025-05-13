@@ -2,6 +2,7 @@
 #define CUTILS_ALLOCATOR_H
 
 #include "cutils/config.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -39,6 +40,12 @@ void *cutils_allocate_aligned (cutils_allocator_t *allocator, size_t size,
 
 /* Deallocate memory */
 void cutils_deallocate (cutils_allocator_t *allocator, void *ptr);
+
+/* Move an allocation of old_size bytes into a new one of new_size bytes,
+   copying the bytes both have in common. ptr may be NULL. On failure NULL is
+   returned and ptr is left untouched */
+void *cutils_reallocate (cutils_allocator_t *allocator, void *ptr,
+                         size_t old_size, size_t new_size, size_t alignment);
 
 /* Get memory usage statistics */
 size_t cutils_get_memory_usage (cutils_allocator_t *allocator);

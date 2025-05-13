@@ -158,6 +158,23 @@ cutils_deallocate (cutils_allocator_t *allocator, void *ptr)
   allocator->deallocate (allocator->context, ptr);
 }
 
+void *
+cutils_reallocate (cutils_allocator_t *allocator, void *ptr, size_t old_size,
+                   size_t new_size, size_t alignment)
+{
+  void *new_ptr = cutils_allocate_aligned (allocator, new_size, alignment);
+  if (new_ptr == NULL)
+    {
+      return NULL;
+    }
+  if (ptr != NULL)
+    {
+      memcpy (new_ptr, ptr, old_size < new_size ? old_size : new_size);
+      cutils_deallocate (allocator, ptr);
+    }
+  return new_ptr;
+}
+
 // the statistics below only make sense for static pools. any other context
 // belongs to a user supplied allocator and has an unknown layout
 static cutils_static_pool_t *
