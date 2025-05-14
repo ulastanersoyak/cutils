@@ -1,10 +1,10 @@
 #include "cutils/vector.h"
+#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include <string.h>
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <threads.h>
 
 static thread_local vector_result_t g_last_error = VECTOR_OK;
@@ -21,15 +21,17 @@ vector_create_with_allocator (size_t init_capacity, size_t elem_len,
       return NULL;
     }
 
-  if (SIZE_MAX / elem_len < init_capacity)
-    {
-      g_last_error = VECTOR_OVERFLOW;
-      return NULL;
-    }
-
   if (init_capacity == 0)
     {
       init_capacity = CUTILS_VECTOR_INIT_CAPACITY;
+    }
+
+  size_t bytes;
+  if (init_capacity > CUTILS_VECTOR_MAX_CAPACITY
+      || !cutils_array_bytes (init_capacity, elem_len, &bytes))
+    {
+      g_last_error = VECTOR_OVERFLOW;
+      return NULL;
     }
 
   vector_t *vec = cutils_allocate_aligned (allocator, sizeof (vector_t),
@@ -40,8 +42,7 @@ vector_create_with_allocator (size_t init_capacity, size_t elem_len,
       return NULL;
     }
 
-  vec->data = cutils_allocate_aligned (allocator, init_capacity * elem_len,
-                                       CUTILS_ALIGNMENT);
+  vec->data = cutils_allocate_aligned (allocator, bytes, CUTILS_ALIGNMENT);
   if (vec->data == NULL)
     {
       cutils_deallocate (allocator, vec);
@@ -55,6 +56,53 @@ vector_create_with_allocator (size_t init_capacity, size_t elem_len,
   vec->allocator = allocator;
 
   return vec;
+}
+
+// moves the elements into a buffer of exactly capacity elements, through the
+// vector's own allocator. capacity must be at least vec->len
+static bool
+vector_set_capacity (vector_t *vec, size_t capacity)
+{
+  size_t bytes;
+  if (capacity > CUTILS_VECTOR_MAX_CAPACITY
+      || !cutils_array_bytes (capacity, vec->elem_len, &bytes))
+    {
+      g_last_error = VECTOR_OVERFLOW;
+      return false;
+    }
+
+  void *new_data
+      = cutils_reallocate (vec->allocator, vec->data, vec->len * vec->elem_len,
+                           bytes, CUTILS_ALIGNMENT);
+  if (new_data == NULL)
+    {
+      g_last_error = VECTOR_NO_MEMORY;
+      return false;
+    }
+
+  vec->data = new_data;
+  vec->capacity = capacity;
+  return true;
+}
+
+// makes room for at least required elements, growing geometrically
+static bool
+vector_grow (vector_t *vec, size_t required)
+{
+  if (required <= vec->capacity)
+    {
+      return true;
+    }
+
+  size_t new_capacity;
+  if (!cutils_next_capacity (vec->capacity, required,
+                             CUTILS_VECTOR_MAX_CAPACITY, &new_capacity))
+    {
+      g_last_error = VECTOR_OVERFLOW;
+      return false;
+    }
+
+  return vector_set_capacity (vec, new_capacity);
 }
 
 vector_t *
@@ -77,36 +125,15 @@ vector_push_timeout (vector_t *vec, const void *elem, uint32_t timeout_ms)
 
   uint64_t start_time = cutils_get_current_time_ms ();
 
-  if (vec->len >= vec->capacity)
+  if (vec->len == SIZE_MAX || !vector_grow (vec, vec->len + 1))
     {
-      size_t new_capacity = vec->capacity == 0
-                                ? CUTILS_VECTOR_INIT_CAPACITY
-                                : vec->capacity * CUTILS_VECTOR_GROWTH_FACTOR;
+      return false;
+    }
 
-      if (new_capacity > CUTILS_VECTOR_MAX_CAPACITY)
-        {
-          g_last_error = VECTOR_OVERFLOW;
-          return false;
-        }
-
-      if (cutils_timeout_expired (start_time, timeout_ms))
-        {
-          g_last_error = VECTOR_TIMEOUT;
-          return false;
-        }
-
-      void *new_data = cutils_allocate_aligned (
-          vec->allocator, new_capacity * vec->elem_len, CUTILS_ALIGNMENT);
-      if (new_data == NULL)
-        {
-          g_last_error = VECTOR_NO_MEMORY;
-          return false;
-        }
-
-      memcpy (new_data, vec->data, vec->len * vec->elem_len);
-      cutils_deallocate (vec->allocator, vec->data);
-      vec->data = new_data;
-      vec->capacity = new_capacity;
+  if (cutils_timeout_expired (start_time, timeout_ms))
+    {
+      g_last_error = VECTOR_TIMEOUT;
+      return false;
     }
 
   memcpy ((char *)vec->data + (vec->len * vec->elem_len), elem, vec->elem_len);
@@ -138,25 +165,18 @@ vector_copy (const vector_t *vec)
       return NULL;
     }
 
-  vector_t *copy_vec = malloc (sizeof (vector_t));
+  vector_t *copy_vec = vector_create_with_allocator (
+      vec->capacity, vec->elem_len, vec->allocator);
   if (copy_vec == NULL)
     {
-      g_last_error = VECTOR_NO_MEMORY;
       return NULL;
     }
 
-  copy_vec->data = malloc (vec->elem_len * vec->capacity);
-  if (copy_vec->data == NULL)
+  if (vec->len > 0)
     {
-      free (copy_vec);
-      g_last_error = VECTOR_NO_MEMORY;
-      return NULL;
+      memcpy (copy_vec->data, vec->data, vec->elem_len * vec->len);
     }
-
-  memcpy (copy_vec->data, vec->data, vec->elem_len * vec->len);
-  copy_vec->capacity = vec->capacity;
   copy_vec->len = vec->len;
-  copy_vec->elem_len = vec->elem_len;
 
   return copy_vec;
 }
@@ -169,14 +189,11 @@ vector_destroy (vector_t *vec)
   if (vec == NULL)
     {
       g_last_error = VECTOR_NULL_PTR;
+      return;
     }
 
-  if (vec->data != NULL)
-    {
-      free (vec->data);
-    }
-
-  free (vec);
+  cutils_deallocate (vec->allocator, vec->data);
+  cutils_deallocate (vec->allocator, vec);
 }
 
 bool
@@ -190,14 +207,17 @@ vector_pop (vector_t *vec, void *out)
       return false;
     }
 
-  if (vec->capacity == 0 || vec->len == 0)
+  if (vec->len == 0)
     {
       g_last_error = VECTOR_OUT_OF_RANGE;
       return false;
     }
 
-  memcpy (out, (char *)vec->data + ((vec->len - 1) * vec->elem_len),
-          vec->elem_len);
+  if (out != NULL)
+    {
+      memcpy (out, (char *)vec->data + ((vec->len - 1) * vec->elem_len),
+              vec->elem_len);
+    }
   vec->len--;
 
   return true;
@@ -208,7 +228,7 @@ vector_get (const vector_t *vec, size_t index, void *out)
 {
   g_last_error = VECTOR_OK;
 
-  if (vec == NULL)
+  if (vec == NULL || out == NULL)
     {
       g_last_error = VECTOR_NULL_PTR;
       return false;
@@ -263,27 +283,9 @@ vector_insert (vector_t *vec, size_t index, const void *elem)
       return false;
     }
 
-  if (vec->len >= vec->capacity)
+  if (vec->len == SIZE_MAX || !vector_grow (vec, vec->len + 1))
     {
-      size_t new_capacity = vec->capacity == 0
-                                ? CUTILS_VECTOR_INIT_CAPACITY
-                                : vec->capacity * CUTILS_VECTOR_GROWTH_FACTOR;
-
-      if (SIZE_MAX / vec->elem_len < new_capacity)
-        {
-          g_last_error = VECTOR_OVERFLOW;
-          return false;
-        }
-
-      void *new_data = realloc (vec->data, new_capacity * vec->elem_len);
-      if (new_data == NULL)
-        {
-          g_last_error = VECTOR_NO_MEMORY;
-          return false;
-        }
-
-      vec->data = new_data;
-      vec->capacity = new_capacity;
+      return false;
     }
 
   if (index < vec->len)
@@ -348,23 +350,7 @@ vector_reserve (vector_t *vec, size_t capacity)
       return true;
     }
 
-  if (SIZE_MAX / vec->elem_len < capacity)
-    {
-      g_last_error = VECTOR_OVERFLOW;
-      return false;
-    }
-
-  void *new_data = realloc (vec->data, capacity * vec->elem_len);
-  if (new_data == NULL)
-    {
-      g_last_error = VECTOR_NO_MEMORY;
-      return false;
-    }
-
-  vec->data = new_data;
-  vec->capacity = capacity;
-
-  return true;
+  return vector_set_capacity (vec, capacity);
 }
 
 bool
@@ -385,23 +371,13 @@ vector_shrink (vector_t *vec)
 
   if (vec->len == 0)
     {
-      free (vec->data);
+      cutils_deallocate (vec->allocator, vec->data);
       vec->data = NULL;
       vec->capacity = 0;
       return true;
     }
 
-  void *new_data = realloc (vec->data, vec->len * vec->elem_len);
-  if (new_data == NULL)
-    {
-      g_last_error = VECTOR_NO_MEMORY;
-      return false;
-    }
-
-  vec->data = new_data;
-  vec->capacity = vec->len;
-
-  return true;
+  return vector_set_capacity (vec, vec->len);
 }
 
 bool
@@ -480,16 +456,48 @@ vector_can_perform_operation (const vector_t *vec, size_t required_capacity)
       return true;
     }
 
-  size_t new_capacity = vec->capacity == 0
-                            ? CUTILS_VECTOR_INIT_CAPACITY
-                            : vec->capacity * CUTILS_VECTOR_GROWTH_FACTOR;
-
-  if (new_capacity > CUTILS_VECTOR_MAX_CAPACITY)
+  size_t new_capacity;
+  size_t bytes;
+  if (!cutils_next_capacity (vec->capacity, required_capacity,
+                             CUTILS_VECTOR_MAX_CAPACITY, &new_capacity)
+      || !cutils_array_bytes (new_capacity, vec->elem_len, &bytes))
     {
       g_last_error = VECTOR_OVERFLOW;
       return false;
     }
 
-  return cutils_can_allocate (vec->allocator, new_capacity * vec->elem_len,
-                              CUTILS_ALIGNMENT);
+  return cutils_can_allocate (vec->allocator, bytes, CUTILS_ALIGNMENT);
+}
+
+size_t
+vector_length (const vector_t *vec)
+{
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return 0;
+    }
+  return vec->len;
+}
+
+size_t
+vector_capacity (const vector_t *vec)
+{
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return 0;
+    }
+  return vec->capacity;
+}
+
+size_t
+vector_element_size (const vector_t *vec)
+{
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return 0;
+    }
+  return vec->elem_len;
 }
