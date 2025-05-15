@@ -1,4 +1,5 @@
 #include "cutils/string.h"
+#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include <stdint.h>
@@ -7,6 +8,7 @@
 
 static thread_local string_result_t g_last_error = STRING_OK;
 
+// capacity counts the terminating '\0', so a string of length n needs n + 1
 static bool
 resize_if_needed (string_t *str, size_t required_capacity, uint32_t timeout_ms)
 {
@@ -22,39 +24,33 @@ resize_if_needed (string_t *str, size_t required_capacity, uint32_t timeout_ms)
     }
 
   uint64_t start_time = cutils_get_current_time_ms ();
-  if (cutils_timeout_expired (start_time, timeout_ms))
+
+  size_t new_capacity;
+  if (!cutils_next_capacity (str->capacity, required_capacity, SIZE_MAX,
+                             &new_capacity))
     {
-      g_last_error = STRING_TIMEOUT;
+      g_last_error = STRING_OVERFLOW;
       return false;
     }
 
-  size_t new_capacity = str->capacity;
-  while (new_capacity < required_capacity)
-    {
-      if (new_capacity > SIZE_MAX / 2)
-        {
-          g_last_error = STRING_OVERFLOW;
-          return false;
-        }
-      new_capacity *= 2;
-    }
-
-  char *new_data = cutils_allocate_aligned (str->allocator, new_capacity,
-                                            CUTILS_ALIGNMENT);
+  char *new_data
+      = cutils_reallocate (str->allocator, str->data, str->length + 1,
+                           new_capacity, CUTILS_ALIGNMENT);
   if (new_data == NULL)
     {
       g_last_error = STRING_NO_MEMORY;
       return false;
     }
 
-  if (str->data != NULL)
-    {
-      memcpy (new_data, str->data, str->length);
-      cutils_deallocate (str->allocator, str->data);
-    }
-
   str->data = new_data;
   str->capacity = new_capacity;
+
+  if (cutils_timeout_expired (start_time, timeout_ms))
+    {
+      g_last_error = STRING_TIMEOUT;
+      return false;
+    }
+
   return true;
 }
 
@@ -78,22 +74,23 @@ string_create_with_allocator (size_t initial_capacity,
       return NULL;
     }
 
-  if (initial_capacity > 0)
+  // always keep room for the terminator, so data is a valid empty c string
+  // from the start and never NULL
+  if (initial_capacity == 0)
     {
-      str->data = cutils_allocate_aligned (allocator, initial_capacity,
-                                           CUTILS_ALIGNMENT);
-      if (str->data == NULL)
-        {
-          cutils_deallocate (allocator, str);
-          g_last_error = STRING_NO_MEMORY;
-          return NULL;
-        }
-    }
-  else
-    {
-      str->data = NULL;
+      initial_capacity = 1;
     }
 
+  str->data = cutils_allocate_aligned (allocator, initial_capacity,
+                                       CUTILS_ALIGNMENT);
+  if (str->data == NULL)
+    {
+      cutils_deallocate (allocator, str);
+      g_last_error = STRING_NO_MEMORY;
+      return NULL;
+    }
+
+  str->data[0] = '\0';
   str->length = 0;
   str->capacity = initial_capacity;
   str->allocator = allocator;
@@ -121,6 +118,12 @@ string_from_cstr_with_allocator (const char *cstr,
     }
 
   size_t len = strlen (cstr);
+  if (len == SIZE_MAX)
+    {
+      g_last_error = STRING_OVERFLOW;
+      return NULL;
+    }
+
   string_t *str = string_create_with_allocator (len + 1, allocator);
   if (str == NULL)
     {
@@ -169,6 +172,12 @@ string_append_timeout (string_t *str, const char *cstr, uint32_t timeout_ms)
     }
 
   size_t len = strlen (cstr);
+  if (len >= SIZE_MAX - str->length)
+    {
+      g_last_error = STRING_OVERFLOW;
+      return false;
+    }
+
   if (!resize_if_needed (str, str->length + len + 1, timeout_ms))
     {
       return false;
@@ -352,7 +361,8 @@ string_substring (const string_t *str, size_t start, size_t length)
       return NULL;
     }
 
-  if (start >= str->length)
+  // start == length is allowed and gives an empty string
+  if (start > str->length)
     {
       g_last_error = STRING_INVALID_ARG;
       return NULL;
