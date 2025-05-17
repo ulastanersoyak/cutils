@@ -1,4 +1,5 @@
 #include "cutils/stack.h"
+#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include <stdint.h>
@@ -19,6 +20,13 @@ stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
       return NULL;
     }
 
+  size_t bytes;
+  if (!cutils_array_bytes (initial_capacity, elem_size, &bytes))
+    {
+      g_last_error = STACK_OVERFLOW;
+      return NULL;
+    }
+
   stack_t *stack = cutils_allocate_aligned (allocator, sizeof (stack_t),
                                             CUTILS_ALIGNMENT);
   if (stack == NULL)
@@ -27,13 +35,18 @@ stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
       return NULL;
     }
 
-  stack->data = cutils_allocate_aligned (
-      allocator, elem_size * initial_capacity, CUTILS_ALIGNMENT);
-  if (stack->data == NULL)
+  // with capacity 0 the buffer is allocated on the first push
+  stack->data = NULL;
+  if (bytes > 0)
     {
-      cutils_deallocate (allocator, stack);
-      g_last_error = STACK_NO_MEMORY;
-      return NULL;
+      stack->data
+          = cutils_allocate_aligned (allocator, bytes, CUTILS_ALIGNMENT);
+      if (stack->data == NULL)
+        {
+          cutils_deallocate (allocator, stack);
+          g_last_error = STACK_NO_MEMORY;
+          return NULL;
+        }
     }
 
   stack->size = 0;
@@ -75,34 +88,34 @@ resize_if_needed (stack_t *stack, uint32_t timeout_ms)
     }
 
   uint64_t start_time = cutils_get_current_time_ms ();
-  size_t new_capacity = stack->capacity * 2;
 
-  if (!stack_can_perform_operation (stack, new_capacity * stack->elem_size))
+  size_t new_capacity;
+  size_t bytes;
+  if (!cutils_next_capacity (stack->capacity, stack->size + 1, SIZE_MAX,
+                             &new_capacity)
+      || !cutils_array_bytes (new_capacity, stack->elem_size, &bytes))
     {
-      g_last_error = STACK_NO_MEMORY;
+      g_last_error = STACK_OVERFLOW;
       return false;
     }
 
-  void *new_data = cutils_allocate_aligned (
-      stack->allocator, new_capacity * stack->elem_size, CUTILS_ALIGNMENT);
+  void *new_data = cutils_reallocate (stack->allocator, stack->data,
+                                      stack->size * stack->elem_size, bytes,
+                                      CUTILS_ALIGNMENT);
   if (new_data == NULL)
     {
       g_last_error = STACK_NO_MEMORY;
       return false;
     }
 
+  stack->data = new_data;
+  stack->capacity = new_capacity;
+
   if (cutils_timeout_expired (start_time, timeout_ms))
     {
-      cutils_deallocate (stack->allocator, new_data);
       g_last_error = STACK_TIMEOUT;
       return false;
     }
-
-  memcpy (new_data, stack->data, stack->size * stack->elem_size);
-  cutils_deallocate (stack->allocator, stack->data);
-
-  stack->data = new_data;
-  stack->capacity = new_capacity;
 
   return true;
 }
