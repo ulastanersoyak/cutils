@@ -1,4 +1,5 @@
 #include "cutils/queue.h"
+#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include <stdint.h>
@@ -19,6 +20,13 @@ queue_create_with_allocator (size_t elem_size, size_t initial_capacity,
       return NULL;
     }
 
+  size_t bytes;
+  if (!cutils_array_bytes (initial_capacity, elem_size, &bytes))
+    {
+      g_last_error = QUEUE_OVERFLOW;
+      return NULL;
+    }
+
   queue_t *queue = cutils_allocate_aligned (allocator, sizeof (queue_t),
                                             CUTILS_ALIGNMENT);
   if (queue == NULL)
@@ -27,13 +35,18 @@ queue_create_with_allocator (size_t elem_size, size_t initial_capacity,
       return NULL;
     }
 
-  queue->data = cutils_allocate_aligned (
-      allocator, elem_size * initial_capacity, CUTILS_ALIGNMENT);
-  if (queue->data == NULL)
+  // with capacity 0 the buffer is allocated on the first enqueue
+  queue->data = NULL;
+  if (bytes > 0)
     {
-      cutils_deallocate (allocator, queue);
-      g_last_error = QUEUE_NO_MEMORY;
-      return NULL;
+      queue->data
+          = cutils_allocate_aligned (allocator, bytes, CUTILS_ALIGNMENT);
+      if (queue->data == NULL)
+        {
+          cutils_deallocate (allocator, queue);
+          g_last_error = QUEUE_NO_MEMORY;
+          return NULL;
+        }
     }
 
   queue->size = 0;
@@ -77,44 +90,38 @@ resize_if_needed (queue_t *queue, uint32_t timeout_ms)
     }
 
   uint64_t start_time = cutils_get_current_time_ms ();
-  size_t new_capacity = queue->capacity * 2;
 
-  if (!queue_can_perform_operation (queue, new_capacity * queue->elem_size))
+  size_t new_capacity;
+  size_t bytes;
+  if (!cutils_next_capacity (queue->capacity, queue->size + 1, SIZE_MAX,
+                             &new_capacity)
+      || !cutils_array_bytes (new_capacity, queue->elem_size, &bytes))
     {
-      g_last_error = QUEUE_NO_MEMORY;
+      g_last_error = QUEUE_OVERFLOW;
       return false;
     }
 
-  void *new_data = cutils_allocate_aligned (
-      queue->allocator, new_capacity * queue->elem_size, CUTILS_ALIGNMENT);
+  char *new_data
+      = cutils_allocate_aligned (queue->allocator, bytes, CUTILS_ALIGNMENT);
   if (new_data == NULL)
     {
       g_last_error = QUEUE_NO_MEMORY;
       return false;
     }
 
-  if (cutils_timeout_expired (start_time, timeout_ms))
+  // unwrap the ring: the size elements starting at head may run past the
+  // end of the buffer and continue from index 0
+  if (queue->size > 0)
     {
-      cutils_deallocate (queue->allocator, new_data);
-      g_last_error = QUEUE_TIMEOUT;
-      return false;
-    }
-
-  // Copy elements to new buffer
-  if (queue->head < queue->tail)
-    {
-      // Elements are contiguous
-      memcpy (new_data, (char *)queue->data + (queue->head * queue->elem_size),
-              queue->size * queue->elem_size);
-    }
-  else
-    {
-      // Elements wrap around
       size_t first_part = queue->capacity - queue->head;
+      if (first_part > queue->size)
+        {
+          first_part = queue->size;
+        }
       memcpy (new_data, (char *)queue->data + (queue->head * queue->elem_size),
               first_part * queue->elem_size);
-      memcpy ((char *)new_data + (first_part * queue->elem_size), queue->data,
-              queue->tail * queue->elem_size);
+      memcpy (new_data + (first_part * queue->elem_size), queue->data,
+              (queue->size - first_part) * queue->elem_size);
     }
 
   cutils_deallocate (queue->allocator, queue->data);
@@ -122,6 +129,12 @@ resize_if_needed (queue_t *queue, uint32_t timeout_ms)
   queue->capacity = new_capacity;
   queue->head = 0;
   queue->tail = queue->size;
+
+  if (cutils_timeout_expired (start_time, timeout_ms))
+    {
+      g_last_error = QUEUE_TIMEOUT;
+      return false;
+    }
 
   return true;
 }
