@@ -24,23 +24,19 @@ right_child (size_t i)
   return 2 * i + 2;
 }
 
+// swaps in place one byte at a time, so it needs no scratch memory and can't
+// fail
 static void
 swap_elements (priority_queue_t *queue, size_t i, size_t j)
 {
-  char *temp = cutils_allocate_aligned (queue->allocator, queue->elem_size,
-                                        CUTILS_ALIGNMENT);
-  if (temp == NULL)
+  unsigned char *a = (unsigned char *)queue->data + (i * queue->elem_size);
+  unsigned char *b = (unsigned char *)queue->data + (j * queue->elem_size);
+  for (size_t k = 0; k < queue->elem_size; k++)
     {
-      return;
+      unsigned char tmp = a[k];
+      a[k] = b[k];
+      b[k] = tmp;
     }
-
-  char *data = (char *)queue->data;
-  memcpy (temp, data + (i * queue->elem_size), queue->elem_size);
-  memcpy (data + (i * queue->elem_size), data + (j * queue->elem_size),
-          queue->elem_size);
-  memcpy (data + (j * queue->elem_size), temp, queue->elem_size);
-
-  cutils_deallocate (queue->allocator, temp);
 }
 
 static void
@@ -68,31 +64,36 @@ heapify_up (priority_queue_t *queue, size_t index)
 static void
 heapify_down (priority_queue_t *queue, size_t index)
 {
-  size_t max_index = index;
-  size_t left = left_child (index);
-  size_t right = right_child (index);
   char *data = (char *)queue->data;
-
-  if (left < queue->size
-      && queue->compare (data + (left * queue->elem_size),
-                         data + (max_index * queue->elem_size))
-             > 0)
+  for (;;)
     {
-      max_index = left;
-    }
+      size_t max_index = index;
+      size_t left = left_child (index);
+      size_t right = right_child (index);
 
-  if (right < queue->size
-      && queue->compare (data + (right * queue->elem_size),
-                         data + (max_index * queue->elem_size))
-             > 0)
-    {
-      max_index = right;
-    }
+      if (left < queue->size
+          && queue->compare (data + (left * queue->elem_size),
+                             data + (max_index * queue->elem_size))
+                 > 0)
+        {
+          max_index = left;
+        }
 
-  if (max_index != index)
-    {
+      if (right < queue->size
+          && queue->compare (data + (right * queue->elem_size),
+                             data + (max_index * queue->elem_size))
+                 > 0)
+        {
+          max_index = right;
+        }
+
+      if (max_index == index)
+        {
+          return;
+        }
+
       swap_elements (queue, index, max_index);
-      heapify_down (queue, max_index);
+      index = max_index;
     }
 }
 
