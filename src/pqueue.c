@@ -1,4 +1,5 @@
 #include "cutils/pqueue.h"
+#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include <stdint.h>
@@ -112,6 +113,13 @@ priority_queue_create_with_allocator (size_t elem_size,
       return NULL;
     }
 
+  size_t bytes;
+  if (!cutils_array_bytes (initial_capacity, elem_size, &bytes))
+    {
+      g_last_error = PRIORITY_QUEUE_OVERFLOW;
+      return NULL;
+    }
+
   priority_queue_t *queue = cutils_allocate_aligned (
       allocator, sizeof (priority_queue_t), CUTILS_ALIGNMENT);
   if (queue == NULL)
@@ -120,13 +128,18 @@ priority_queue_create_with_allocator (size_t elem_size,
       return NULL;
     }
 
-  queue->data = cutils_allocate_aligned (
-      allocator, elem_size * initial_capacity, CUTILS_ALIGNMENT);
-  if (queue->data == NULL)
+  // with capacity 0 the buffer is allocated on the first push
+  queue->data = NULL;
+  if (bytes > 0)
     {
-      cutils_deallocate (allocator, queue);
-      g_last_error = PRIORITY_QUEUE_NO_MEMORY;
-      return NULL;
+      queue->data
+          = cutils_allocate_aligned (allocator, bytes, CUTILS_ALIGNMENT);
+      if (queue->data == NULL)
+        {
+          cutils_deallocate (allocator, queue);
+          g_last_error = PRIORITY_QUEUE_NO_MEMORY;
+          return NULL;
+        }
     }
 
   queue->size = 0;
@@ -170,35 +183,34 @@ resize_if_needed (priority_queue_t *queue, uint32_t timeout_ms)
     }
 
   uint64_t start_time = cutils_get_current_time_ms ();
-  size_t new_capacity = queue->capacity * 2;
 
-  if (!priority_queue_can_perform_operation (queue,
-                                             new_capacity * queue->elem_size))
+  size_t new_capacity;
+  size_t bytes;
+  if (!cutils_next_capacity (queue->capacity, queue->size + 1, SIZE_MAX,
+                             &new_capacity)
+      || !cutils_array_bytes (new_capacity, queue->elem_size, &bytes))
     {
-      g_last_error = PRIORITY_QUEUE_NO_MEMORY;
+      g_last_error = PRIORITY_QUEUE_OVERFLOW;
       return false;
     }
 
-  void *new_data = cutils_allocate_aligned (
-      queue->allocator, new_capacity * queue->elem_size, CUTILS_ALIGNMENT);
+  void *new_data = cutils_reallocate (queue->allocator, queue->data,
+                                      queue->size * queue->elem_size, bytes,
+                                      CUTILS_ALIGNMENT);
   if (new_data == NULL)
     {
       g_last_error = PRIORITY_QUEUE_NO_MEMORY;
       return false;
     }
 
+  queue->data = new_data;
+  queue->capacity = new_capacity;
+
   if (cutils_timeout_expired (start_time, timeout_ms))
     {
-      cutils_deallocate (queue->allocator, new_data);
       g_last_error = PRIORITY_QUEUE_TIMEOUT;
       return false;
     }
-
-  memcpy (new_data, queue->data, queue->size * queue->elem_size);
-  cutils_deallocate (queue->allocator, queue->data);
-
-  queue->data = new_data;
-  queue->capacity = new_capacity;
 
   return true;
 }
