@@ -126,6 +126,123 @@ fix_insert (map_t *map, map_node_t *node)
   map->root->is_red = false;
 }
 
+static bool
+node_is_red (const map_node_t *node)
+{
+  return node != NULL && node->is_red;
+}
+
+// puts replacement where node was in the tree. node's own links are left as
+// they were
+static void
+transplant (map_t *map, map_node_t *node, map_node_t *replacement)
+{
+  if (node->parent == NULL)
+    {
+      map->root = replacement;
+    }
+  else if (node == node->parent->left)
+    {
+      node->parent->left = replacement;
+    }
+  else
+    {
+      node->parent->right = replacement;
+    }
+
+  if (replacement != NULL)
+    {
+      replacement->parent = node->parent;
+    }
+}
+
+// restores the red-black properties after a black node was removed. node
+// may be NULL (an empty leaf), so its parent is passed separately
+static void
+fix_remove (map_t *map, map_node_t *node, map_node_t *parent)
+{
+  while (node != map->root && !node_is_red (node))
+    {
+      if (node == parent->left)
+        {
+          map_node_t *sibling = parent->right;
+
+          if (node_is_red (sibling))
+            {
+              sibling->is_red = false;
+              parent->is_red = true;
+              rotate_left (map, parent);
+              sibling = parent->right;
+            }
+
+          if (!node_is_red (sibling->left) && !node_is_red (sibling->right))
+            {
+              sibling->is_red = true;
+              node = parent;
+              parent = node->parent;
+            }
+          else
+            {
+              if (!node_is_red (sibling->right))
+                {
+                  sibling->left->is_red = false;
+                  sibling->is_red = true;
+                  rotate_right (map, sibling);
+                  sibling = parent->right;
+                }
+
+              sibling->is_red = parent->is_red;
+              parent->is_red = false;
+              sibling->right->is_red = false;
+              rotate_left (map, parent);
+              node = map->root;
+              parent = NULL;
+            }
+        }
+      else
+        {
+          map_node_t *sibling = parent->left;
+
+          if (node_is_red (sibling))
+            {
+              sibling->is_red = false;
+              parent->is_red = true;
+              rotate_right (map, parent);
+              sibling = parent->left;
+            }
+
+          if (!node_is_red (sibling->left) && !node_is_red (sibling->right))
+            {
+              sibling->is_red = true;
+              node = parent;
+              parent = node->parent;
+            }
+          else
+            {
+              if (!node_is_red (sibling->left))
+                {
+                  sibling->right->is_red = false;
+                  sibling->is_red = true;
+                  rotate_left (map, sibling);
+                  sibling = parent->left;
+                }
+
+              sibling->is_red = parent->is_red;
+              parent->is_red = false;
+              sibling->left->is_red = false;
+              rotate_right (map, parent);
+              node = map->root;
+              parent = NULL;
+            }
+        }
+    }
+
+  if (node != NULL)
+    {
+      node->is_red = false;
+    }
+}
+
 static map_node_t *
 find_node (const map_t *map, const void *key)
 {
@@ -354,85 +471,57 @@ map_remove (map_t *map, const void *key, void *out_value)
       memcpy (out_value, node->value, map->value_size);
     }
 
-  // TODO: Implement red-black tree deletion
-  // This is a simplified version that doesn't maintain red-black properties
+  // standard red-black deletion. removed is the node that actually leaves
+  // its position: node itself, or its in-order successor when node has two
+  // children. child takes removed's place and may be NULL
+  map_node_t *removed = node;
+  bool removed_was_red = removed->is_red;
+  map_node_t *child;
+  map_node_t *child_parent;
 
   if (node->left == NULL)
     {
-      if (node->parent == NULL)
-        {
-          map->root = node->right;
-        }
-      else if (node == node->parent->left)
-        {
-          node->parent->left = node->right;
-        }
-      else
-        {
-          node->parent->right = node->right;
-        }
-
-      if (node->right != NULL)
-        {
-          node->right->parent = node->parent;
-        }
+      child = node->right;
+      child_parent = node->parent;
+      transplant (map, node, node->right);
     }
   else if (node->right == NULL)
     {
-      if (node->parent == NULL)
-        {
-          map->root = node->left;
-        }
-      else if (node == node->parent->left)
-        {
-          node->parent->left = node->left;
-        }
-      else
-        {
-          node->parent->right = node->left;
-        }
-
-      if (node->left != NULL)
-        {
-          node->left->parent = node->parent;
-        }
+      child = node->left;
+      child_parent = node->parent;
+      transplant (map, node, node->left);
     }
   else
     {
-      map_node_t *successor = node->right;
-
-      while (successor->left != NULL)
+      removed = node->right;
+      while (removed->left != NULL)
         {
-          successor = successor->left;
+          removed = removed->left;
         }
+      removed_was_red = removed->is_red;
+      child = removed->right;
 
-      if (successor != node->right)
+      if (removed->parent == node)
         {
-          successor->parent->left = successor->right;
-          if (successor->right != NULL)
-            {
-              successor->right->parent = successor->parent;
-            }
-          successor->right = node->right;
-          node->right->parent = successor;
-        }
-
-      if (node->parent == NULL)
-        {
-          map->root = successor;
-        }
-      else if (node == node->parent->left)
-        {
-          node->parent->left = successor;
+          child_parent = removed;
         }
       else
         {
-          node->parent->right = successor;
+          child_parent = removed->parent;
+          transplant (map, removed, removed->right);
+          removed->right = node->right;
+          removed->right->parent = removed;
         }
 
-      successor->parent = node->parent;
-      successor->left = node->left;
-      node->left->parent = successor;
+      transplant (map, node, removed);
+      removed->left = node->left;
+      removed->left->parent = removed;
+      removed->is_red = node->is_red;
+    }
+
+  if (!removed_was_red)
+    {
+      fix_remove (map, child, child_parent);
     }
 
   cutils_deallocate (map->allocator, node->key);
