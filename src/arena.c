@@ -8,10 +8,18 @@
 
 static thread_local arena_result_t g_last_error = ARENA_OK;
 
-static size_t
-align_up (size_t size, size_t alignment)
+// rounds size up to a multiple of alignment and checks that it still fits in
+// the space the arena has left. none of the arithmetic can wrap around
+static bool
+fits_aligned (const arena_t *arena, size_t size, size_t *aligned_size)
 {
-  return (size + alignment - 1) & ~(alignment - 1);
+  size_t mask = arena->alignment - 1;
+  if (size > SIZE_MAX - mask)
+    {
+      return false;
+    }
+  *aligned_size = (size + mask) & ~mask;
+  return *aligned_size <= arena->size - arena->used;
 }
 
 arena_t *
@@ -98,8 +106,8 @@ arena_alloc_timeout (arena_t *arena, size_t size, uint32_t timeout_ms)
 
   uint64_t start_time = cutils_get_current_time_ms ();
 
-  size_t aligned_size = align_up (size, arena->alignment);
-  if (arena->used + aligned_size > arena->size)
+  size_t aligned_size;
+  if (!fits_aligned (arena, size, &aligned_size))
     {
       g_last_error = ARENA_OVERFLOW;
       return NULL;
@@ -219,8 +227,8 @@ arena_can_alloc (const arena_t *arena, size_t required_size)
       return false;
     }
 
-  size_t aligned_size = align_up (required_size, arena->alignment);
-  return arena->used + aligned_size <= arena->size;
+  size_t aligned_size;
+  return fits_aligned (arena, required_size, &aligned_size);
 }
 
 arena_result_t
