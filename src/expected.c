@@ -61,7 +61,8 @@ expected_from_data_with_allocator (const void *data, size_t size,
 {
   g_last_error = EXPECTED_OK;
 
-  if (data == NULL || allocator == NULL)
+  // data may only be NULL for an empty value
+  if ((data == NULL && size > 0) || allocator == NULL)
     {
       g_last_error = EXPECTED_INVALID_ARG;
       return NULL;
@@ -73,7 +74,12 @@ expected_from_data_with_allocator (const void *data, size_t size,
       return NULL;
     }
 
-  memcpy (expected->data, data, size);
+  // an empty value has no buffer, and memcpy into NULL is undefined even
+  // for 0 bytes
+  if (size > 0)
+    {
+      memcpy (expected->data, data, size);
+    }
   expected->error = EXPECTED_OK;
 
   return expected;
