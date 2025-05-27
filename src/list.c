@@ -5,6 +5,31 @@
 
 static thread_local list_result_t g_last_error = LIST_OK;
 
+// returns the node at index, walking from whichever end is closer. index
+// must be less than list->len
+static list_node_t *
+node_at (const list_t *list, size_t index)
+{
+  list_node_t *current;
+  if (index < list->len / 2)
+    {
+      current = list->head;
+      for (size_t i = 0; i < index; i++)
+        {
+          current = current->next;
+        }
+    }
+  else
+    {
+      current = list->tail;
+      for (size_t i = list->len - 1; i > index; i--)
+        {
+          current = current->prev;
+        }
+    }
+  return current;
+}
+
 list_t *
 list_create_with_allocator (size_t elem_len, cutils_allocator_t *allocator)
 {
@@ -316,11 +341,7 @@ list_get (const list_t *list, size_t index, void *out)
       return false;
     }
 
-  list_node_t *current = list->head;
-  for (size_t i = 0; i < index; i++)
-    {
-      current = current->next;
-    }
+  list_node_t *current = node_at (list, index);
 
   memcpy (out, current->data, list->elem_len);
   return true;
@@ -343,11 +364,7 @@ list_set (list_t *list, size_t index, const void *elem)
       return false;
     }
 
-  list_node_t *current = list->head;
-  for (size_t i = 0; i < index; i++)
-    {
-      current = current->next;
-    }
+  list_node_t *current = node_at (list, index);
 
   memcpy (current->data, elem, list->elem_len);
   return true;
@@ -383,11 +400,7 @@ list_insert_timeout (list_t *list, size_t index, const void *elem,
 
   uint64_t start_time = cutils_get_current_time_ms ();
 
-  list_node_t *current = list->head;
-  for (size_t i = 0; i < index; i++)
-    {
-      current = current->next;
-    }
+  list_node_t *current = node_at (list, index);
 
   list_node_t *node = cutils_allocate_aligned (
       list->allocator, sizeof (list_node_t), CUTILS_ALIGNMENT);
@@ -457,11 +470,7 @@ list_remove (list_t *list, size_t index, void *out)
       return list_pop_back (list, out);
     }
 
-  list_node_t *current = list->head;
-  for (size_t i = 0; i < index; i++)
-    {
-      current = current->next;
-    }
+  list_node_t *current = node_at (list, index);
 
   if (out != NULL)
     {
