@@ -231,6 +231,54 @@ arena_can_alloc (const arena_t *arena, size_t required_size)
   return fits_aligned (arena, required_size, &aligned_size);
 }
 
+static void *
+arena_allocate (void *context, size_t size, size_t alignment)
+{
+  arena_t *arena = (arena_t *)context;
+
+  // pad to whichever alignment is stricter. both are powers of two, so the
+  // padded offset stays a multiple of the arena's own alignment
+  if (alignment < arena->alignment)
+    {
+      alignment = arena->alignment;
+    }
+  uintptr_t current = (uintptr_t)arena->data + arena->used;
+  size_t padding
+      = (size_t)((alignment - (current & (alignment - 1))) & (alignment - 1));
+  if (padding > arena->size - arena->used)
+    {
+      g_last_error = ARENA_OVERFLOW;
+      return NULL;
+    }
+
+  size_t used_before = arena->used;
+  arena->used += padding;
+  void *ptr = arena_alloc (arena, size);
+  if (ptr == NULL)
+    {
+      arena->used = used_before;
+    }
+  return ptr;
+}
+
+static void
+arena_deallocate (void *context, void *ptr)
+{
+  // arena memory is released all at once by arena_clear or arena_destroy
+  (void)context;
+  (void)ptr;
+}
+
+cutils_allocator_t
+arena_allocator (arena_t *arena)
+{
+  cutils_allocator_t allocator;
+  allocator.allocate = arena_allocate;
+  allocator.deallocate = arena_deallocate;
+  allocator.context = arena;
+  return allocator;
+}
+
 arena_result_t
 arena_get_error (void)
 {

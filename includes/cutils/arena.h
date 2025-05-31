@@ -139,6 +139,17 @@ size_t arena_memory_usage (const arena_t *arena);
 bool arena_can_alloc (const arena_t *arena, size_t required_size);
 
 /**
+ * Wraps the arena in the generic allocator interface, so containers can
+ * allocate from it. Deallocation is a no-op: memory comes back all at once
+ * with arena_clear or arena_destroy, which makes this a cheap way to throw
+ * away a group of temporary containers together.
+ *
+ * @param arena Arena to allocate from, must outlive every container using it
+ * @return Allocator backed by the arena
+ */
+cutils_allocator_t arena_allocator (arena_t *arena);
+
+/**
  * Gets the last arena operation error.
  *
  * @return Last error code
