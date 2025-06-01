@@ -198,6 +198,40 @@ bool vector_is_empty (const vector_t *vec);
 bool vector_back (const vector_t *vec, void *out);
 
 /**
+ * Gets a pointer to an element, for reading or writing it in place.
+ *
+ * @param vec Vector to index
+ * @param index Index of the element
+ * @return Pointer to the element, or NULL if vec is NULL or index is out of
+ *         range. Invalidated by any operation that grows or shrinks vec
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ * @note Sets error to VECTOR_OUT_OF_RANGE if index is out of range
+ */
+void *vector_at (vector_t *vec, size_t index);
+
+/**
+ * Gets the underlying array of vector_length elements.
+ *
+ * @param vec Vector to get the array of
+ * @return Pointer to the first element, NULL if vec is NULL or has no
+ *         buffer. Invalidated by any operation that grows or shrinks vec
+ */
+void *vector_data (vector_t *vec);
+
+/**
+ * Removes an element by moving the last element into its place. O(1), but
+ * doesn't keep the order of the remaining elements.
+ *
+ * @param vec Vector to remove from
+ * @param index Index of the element to remove
+ * @param out Buffer for the removed element, may be NULL
+ * @return true if successful, false otherwise
+ * @note Sets error to VECTOR_NULL_PTR if vec is NULL
+ * @note Sets error to VECTOR_OUT_OF_RANGE if index is out of range
+ */
+bool vector_swap_remove (vector_t *vec, size_t index, void *out);
+
+/**
  * Gets the current length of the vector.
  *
  * @param vec Vector to get length from

@@ -431,6 +431,70 @@ vector_back (const vector_t *vec, void *out)
   return true;
 }
 
+void *
+vector_at (vector_t *vec, size_t index)
+{
+  g_last_error = VECTOR_OK;
+
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return NULL;
+    }
+
+  if (index >= vec->len)
+    {
+      g_last_error = VECTOR_OUT_OF_RANGE;
+      return NULL;
+    }
+
+  return (char *)vec->data + (index * vec->elem_len);
+}
+
+void *
+vector_data (vector_t *vec)
+{
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return NULL;
+    }
+  return vec->data;
+}
+
+bool
+vector_swap_remove (vector_t *vec, size_t index, void *out)
+{
+  g_last_error = VECTOR_OK;
+
+  if (vec == NULL)
+    {
+      g_last_error = VECTOR_NULL_PTR;
+      return false;
+    }
+
+  if (index >= vec->len)
+    {
+      g_last_error = VECTOR_OUT_OF_RANGE;
+      return false;
+    }
+
+  char *slot = (char *)vec->data + (index * vec->elem_len);
+  if (out != NULL)
+    {
+      memcpy (out, slot, vec->elem_len);
+    }
+
+  size_t last = vec->len - 1;
+  if (index != last)
+    {
+      memcpy (slot, (char *)vec->data + (last * vec->elem_len), vec->elem_len);
+    }
+
+  vec->len--;
+  return true;
+}
+
 size_t
 vector_memory_usage (const vector_t *vec)
 {
