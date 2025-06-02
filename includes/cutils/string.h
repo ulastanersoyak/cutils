@@ -219,4 +219,40 @@ int string_compare (const string_t *str1, const string_t *str2);
  */
 int string_compare_cstr (const string_t *str1, const char *str2);
 
+/**
+ * Makes sure the string can hold at least length characters without
+ * growing again.
+ *
+ * @param str String to reserve space in
+ * @param length Number of characters, not counting the terminator
+ * @return true if successful, false otherwise
+ */
+bool string_reserve (string_t *str, size_t length);
+
+/**
+ * Creates a copy of a string using the same allocator.
+ *
+ * @param str String to copy
+ * @return Newly allocated copy or NULL on error
+ */
+string_t *string_copy (const string_t *str);
+
+/**
+ * Checks whether the string begins with prefix.
+ *
+ * @param str String to check
+ * @param prefix C string to look for, "" always matches
+ * @return true if str starts with prefix, false otherwise or on error
+ */
+bool string_starts_with (const string_t *str, const char *prefix);
+
+/**
+ * Checks whether the string ends with suffix.
+ *
+ * @param str String to check
+ * @param suffix C string to look for, "" always matches
+ * @return true if str ends with suffix, false otherwise or on error
+ */
+bool string_ends_with (const string_t *str, const char *suffix);
+
 #endif // CUTILS_STRING_H

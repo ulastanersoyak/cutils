@@ -407,3 +407,73 @@ string_compare_cstr (const string_t *str, const char *cstr)
     }
   return strcmp (str->data, cstr);
 }
+
+bool
+string_reserve (string_t *str, size_t length)
+{
+  g_last_error = STRING_OK;
+
+  if (str == NULL)
+    {
+      g_last_error = STRING_NULL_PTR;
+      return false;
+    }
+
+  if (length == SIZE_MAX)
+    {
+      g_last_error = STRING_OVERFLOW;
+      return false;
+    }
+
+  return resize_if_needed (str, length + 1, UINT32_MAX);
+}
+
+string_t *
+string_copy (const string_t *str)
+{
+  g_last_error = STRING_OK;
+
+  if (str == NULL)
+    {
+      g_last_error = STRING_NULL_PTR;
+      return NULL;
+    }
+
+  string_t *copy
+      = string_create_with_allocator (str->length + 1, str->allocator);
+  if (copy == NULL)
+    {
+      return NULL;
+    }
+
+  memcpy (copy->data, str->data, str->length + 1);
+  copy->length = str->length;
+  return copy;
+}
+
+bool
+string_starts_with (const string_t *str, const char *prefix)
+{
+  if (str == NULL || prefix == NULL)
+    {
+      g_last_error = STRING_INVALID_ARG;
+      return false;
+    }
+
+  size_t len = strlen (prefix);
+  return len <= str->length && memcmp (str->data, prefix, len) == 0;
+}
+
+bool
+string_ends_with (const string_t *str, const char *suffix)
+{
+  if (str == NULL || suffix == NULL)
+    {
+      g_last_error = STRING_INVALID_ARG;
+      return false;
+    }
+
+  size_t len = strlen (suffix);
+  return len <= str->length
+         && memcmp (str->data + (str->length - len), suffix, len) == 0;
+}
