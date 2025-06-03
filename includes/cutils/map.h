@@ -93,6 +93,19 @@ bool map_insert_timeout (map_t *map, const void *key, const void *value,
 bool map_insert (map_t *map, const void *key, const void *value);
 
 /**
+ * Inserts a key-value pair, or overwrites the value if the key is already
+ * present.
+ *
+ * @param map Map to insert into
+ * @param key Key to insert or update
+ * @param value Value to store
+ * @return true if successful, false otherwise
+ * @note Sets error to MAP_NULL_PTR if any parameter is NULL
+ * @note Sets error to MAP_NO_MEMORY if a new node can't be allocated
+ */
+bool map_insert_or_assign (map_t *map, const void *key, const void *value);
+
+/**
  * Removes a key-value pair from the map.
  *
  * @param map Map to remove from

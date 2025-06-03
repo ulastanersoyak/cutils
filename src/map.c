@@ -449,6 +449,27 @@ map_insert (map_t *map, const void *key, const void *value)
 }
 
 bool
+map_insert_or_assign (map_t *map, const void *key, const void *value)
+{
+  g_last_error = MAP_OK;
+
+  if (map == NULL || key == NULL || value == NULL)
+    {
+      g_last_error = MAP_NULL_PTR;
+      return false;
+    }
+
+  map_node_t *node = find_node (map, key);
+  if (node != NULL)
+    {
+      memcpy (node->value, value, map->value_size);
+      return true;
+    }
+
+  return map_insert (map, key, value);
+}
+
+bool
 map_remove (map_t *map, const void *key, void *out_value)
 {
   g_last_error = MAP_OK;
