@@ -9,17 +9,33 @@
  *
  * This function returns the current time in milliseconds since the Unix epoch
  * (January 1, 1970, 00:00:00 UTC). The implementation is platform-independent
- * and works on both Windows and Unix-like systems.
+ * and works on both Windows and Unix-like systems. If a time source was set
+ * with cutils_set_time_source, its value is returned instead. Bare metal
+ * builds without a time source return 0.
  *
  * @return uint64_t The current time in milliseconds
  */
 uint64_t cutils_get_current_time_ms (void);
 
+/* Function returning a monotonic time in milliseconds, e.g. a systick count */
+typedef uint64_t (*cutils_time_source_t) (void);
+
+/**
+ * @brief Use now_ms as the clock for cutils_get_current_time_ms and the
+ * timeout checks
+ *
+ * Bare metal builds have no clock of their own, so timeouts only work once a
+ * source is set. Pass NULL to go back to the default.
+ *
+ * @param now_ms Time source, or NULL
+ */
+void cutils_set_time_source (cutils_time_source_t now_ms);
+
 /**
  * @brief Check whether more than timeout_ms have passed since start_ms
  *
  * Used by the *_timeout operations of every container. On bare metal builds
- * there is no clock, so this never reports a timeout.
+ * without a time source there is no clock, so this never reports a timeout.
  *
  * @param start_ms Value of cutils_get_current_time_ms when the operation began
  * @param timeout_ms Time the operation is allowed to take
