@@ -68,7 +68,7 @@ include `<cutils/cutils.h>` for everything, or the header of a single module suc
 
 ## configuration
 
-every option in `includes/cutils/config.h` can be overridden without editing the file, either on the command line:
+every option in `include/cutils/config.h` can be overridden without editing the file, either on the command line:
 
 ```bash
 cmake .. -DCMAKE_C_FLAGS="-DCUTILS_MAX_STATIC_MEMORY=8192"

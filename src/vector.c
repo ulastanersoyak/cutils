@@ -1,7 +1,7 @@
 #include "cutils/vector.h"
-#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
+#include "internal/capacity.h"
 #include <string.h>
 
 #include <stdint.h>

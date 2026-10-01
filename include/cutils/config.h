@@ -98,7 +98,8 @@
 #endif
 
 #if CUTILS_USE_STATIC_ALLOCATION == CUTILS_USE_DYNAMIC_ALLOCATION
-#error "enable exactly one of CUTILS_USE_STATIC_ALLOCATION and CUTILS_USE_DYNAMIC_ALLOCATION"
+#error                                                                        \
+    "enable exactly one of CUTILS_USE_STATIC_ALLOCATION and CUTILS_USE_DYNAMIC_ALLOCATION"
 #endif
 
 #if CUTILS_ALIGNMENT <= 0 || (CUTILS_ALIGNMENT & (CUTILS_ALIGNMENT - 1)) != 0

@@ -80,14 +80,14 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 target_include_directories(
-  cutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/includes>
+  cutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                 $<INSTALL_INTERFACE:include>)
 target_compile_options(cutils PRIVATE ${WARNING_FLAGS} $<$<CONFIG:Debug>:-g>
                                       $<$<CONFIG:Release>:-O2>)
 
 include(GNUInstallDirs)
 install(TARGETS cutils EXPORT cutils-targets)
-install(DIRECTORY includes/cutils DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY include/cutils DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(
   EXPORT cutils-targets
   NAMESPACE cutils::

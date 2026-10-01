@@ -1,7 +1,7 @@
 #include "cutils/string.h"
-#include "capacity.h"
 #include "cutils/config.h"
 #include "cutils/time.h"
+#include "internal/capacity.h"
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
