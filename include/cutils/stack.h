@@ -14,7 +14,7 @@ typedef struct
   size_t capacity;
   size_t elem_size;
   cutils_allocator_t *allocator;
-} stack_t;
+} cutils_stack_t;
 
 typedef enum
 {
@@ -36,9 +36,9 @@ typedef enum
  * @param allocator Allocator to use
  * @return Newly allocated stack or NULL on error
  */
-stack_t *stack_create_with_allocator (size_t elem_size,
-                                      size_t initial_capacity,
-                                      cutils_allocator_t *allocator);
+cutils_stack_t *stack_create_with_allocator (size_t elem_size,
+                                             size_t initial_capacity,
+                                             cutils_allocator_t *allocator);
 
 /**
  * Creates a new stack using the default allocator.
@@ -47,14 +47,14 @@ stack_t *stack_create_with_allocator (size_t elem_size,
  * @param initial_capacity Initial capacity of the stack
  * @return Newly allocated stack or NULL on error
  */
-stack_t *stack_create (size_t elem_size, size_t initial_capacity);
+cutils_stack_t *stack_create (size_t elem_size, size_t initial_capacity);
 
 /**
  * Destroys stack and frees all allocated memory.
  *
  * @param stack Stack to destroy
  */
-void stack_destroy (stack_t *stack);
+void stack_destroy (cutils_stack_t *stack);
 
 /**
  * Pushes an element onto the stack with timeout.
@@ -64,7 +64,7 @@ void stack_destroy (stack_t *stack);
  * @param timeout_ms Timeout in milliseconds
  * @return true if successful, false otherwise
  */
-bool stack_push_timeout (stack_t *stack, const void *elem,
+bool stack_push_timeout (cutils_stack_t *stack, const void *elem,
                          uint32_t timeout_ms);
 
 /**
@@ -74,7 +74,7 @@ bool stack_push_timeout (stack_t *stack, const void *elem,
  * @param elem Element to push
  * @return true if successful, false otherwise
  */
-bool stack_push (stack_t *stack, const void *elem);
+bool stack_push (cutils_stack_t *stack, const void *elem);
 
 /**
  * Pops an element from the stack.
@@ -83,7 +83,7 @@ bool stack_push (stack_t *stack, const void *elem);
  * @param out_elem Output parameter to store the popped element
  * @return true if successful, false otherwise
  */
-bool stack_pop (stack_t *stack, void *out_elem);
+bool stack_pop (cutils_stack_t *stack, void *out_elem);
 
 /**
  * Gets the top element of the stack without removing it.
@@ -92,7 +92,7 @@ bool stack_pop (stack_t *stack, void *out_elem);
  * @param out_elem Output parameter to store the top element
  * @return true if successful, false otherwise
  */
-bool stack_peek (const stack_t *stack, void *out_elem);
+bool stack_peek (const cutils_stack_t *stack, void *out_elem);
 
 /**
  * Gets the number of elements in the stack.
@@ -100,7 +100,7 @@ bool stack_peek (const stack_t *stack, void *out_elem);
  * @param stack Stack to get size from
  * @return Number of elements
  */
-size_t stack_size (const stack_t *stack);
+size_t stack_size (const cutils_stack_t *stack);
 
 /**
  * Gets the capacity of the stack.
@@ -108,7 +108,7 @@ size_t stack_size (const stack_t *stack);
  * @param stack Stack to get capacity from
  * @return Capacity of the stack
  */
-size_t stack_capacity (const stack_t *stack);
+size_t stack_capacity (const cutils_stack_t *stack);
 
 /**
  * Checks if the stack is empty.
@@ -116,7 +116,7 @@ size_t stack_capacity (const stack_t *stack);
  * @param stack Stack to check
  * @return true if empty, false otherwise
  */
-bool stack_is_empty (const stack_t *stack);
+bool stack_is_empty (const cutils_stack_t *stack);
 
 /**
  * Checks if the stack is full.
@@ -124,7 +124,7 @@ bool stack_is_empty (const stack_t *stack);
  * @param stack Stack to check
  * @return true if full, false otherwise
  */
-bool stack_is_full (const stack_t *stack);
+bool stack_is_full (const cutils_stack_t *stack);
 
 /**
  * Clears all elements from the stack.
@@ -132,7 +132,7 @@ bool stack_is_full (const stack_t *stack);
  * @param stack Stack to clear
  * @return true if successful, false otherwise
  */
-bool stack_clear (stack_t *stack);
+bool stack_clear (cutils_stack_t *stack);
 
 /**
  * Gets the memory usage of the stack.
@@ -140,7 +140,7 @@ bool stack_clear (stack_t *stack);
  * @param stack Stack to get memory usage from
  * @return Memory usage in bytes
  */
-size_t stack_memory_usage (const stack_t *stack);
+size_t stack_memory_usage (const cutils_stack_t *stack);
 
 /**
  * Checks if an operation would succeed without actually performing it.
@@ -149,7 +149,7 @@ size_t stack_memory_usage (const stack_t *stack);
  * @param required_capacity Required capacity
  * @return true if operation would succeed, false otherwise
  */
-bool stack_can_perform_operation (const stack_t *stack,
+bool stack_can_perform_operation (const cutils_stack_t *stack,
                                   size_t required_capacity);
 
 /**

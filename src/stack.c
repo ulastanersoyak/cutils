@@ -8,7 +8,7 @@
 
 static thread_local stack_result_t g_last_error = STACK_OK;
 
-stack_t *
+cutils_stack_t *
 stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
                              cutils_allocator_t *allocator)
 {
@@ -27,8 +27,8 @@ stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
       return NULL;
     }
 
-  stack_t *stack = cutils_allocate_aligned (allocator, sizeof (stack_t),
-                                            CUTILS_ALIGNMENT);
+  cutils_stack_t *stack = cutils_allocate_aligned (
+      allocator, sizeof (cutils_stack_t), CUTILS_ALIGNMENT);
   if (stack == NULL)
     {
       g_last_error = STACK_NO_MEMORY;
@@ -57,7 +57,7 @@ stack_create_with_allocator (size_t elem_size, size_t initial_capacity,
   return stack;
 }
 
-stack_t *
+cutils_stack_t *
 stack_create (size_t elem_size, size_t initial_capacity)
 {
   return stack_create_with_allocator (elem_size, initial_capacity,
@@ -65,7 +65,7 @@ stack_create (size_t elem_size, size_t initial_capacity)
 }
 
 void
-stack_destroy (stack_t *stack)
+stack_destroy (cutils_stack_t *stack)
 {
   g_last_error = STACK_OK;
 
@@ -80,7 +80,7 @@ stack_destroy (stack_t *stack)
 }
 
 static bool
-resize_if_needed (stack_t *stack, uint32_t timeout_ms)
+resize_if_needed (cutils_stack_t *stack, uint32_t timeout_ms)
 {
   if (stack->size < stack->capacity)
     {
@@ -121,7 +121,8 @@ resize_if_needed (stack_t *stack, uint32_t timeout_ms)
 }
 
 bool
-stack_push_timeout (stack_t *stack, const void *elem, uint32_t timeout_ms)
+stack_push_timeout (cutils_stack_t *stack, const void *elem,
+                    uint32_t timeout_ms)
 {
   g_last_error = STACK_OK;
 
@@ -144,13 +145,13 @@ stack_push_timeout (stack_t *stack, const void *elem, uint32_t timeout_ms)
 }
 
 bool
-stack_push (stack_t *stack, const void *elem)
+stack_push (cutils_stack_t *stack, const void *elem)
 {
   return stack_push_timeout (stack, elem, CUTILS_MAX_OPERATION_TIME_MS);
 }
 
 bool
-stack_pop (stack_t *stack, void *out_elem)
+stack_pop (cutils_stack_t *stack, void *out_elem)
 {
   g_last_error = STACK_OK;
 
@@ -174,7 +175,7 @@ stack_pop (stack_t *stack, void *out_elem)
 }
 
 bool
-stack_peek (const stack_t *stack, void *out_elem)
+stack_peek (const cutils_stack_t *stack, void *out_elem)
 {
   g_last_error = STACK_OK;
 
@@ -198,7 +199,7 @@ stack_peek (const stack_t *stack, void *out_elem)
 }
 
 size_t
-stack_size (const stack_t *stack)
+stack_size (const cutils_stack_t *stack)
 {
   if (stack == NULL)
     {
@@ -209,7 +210,7 @@ stack_size (const stack_t *stack)
 }
 
 size_t
-stack_capacity (const stack_t *stack)
+stack_capacity (const cutils_stack_t *stack)
 {
   if (stack == NULL)
     {
@@ -220,7 +221,7 @@ stack_capacity (const stack_t *stack)
 }
 
 bool
-stack_is_empty (const stack_t *stack)
+stack_is_empty (const cutils_stack_t *stack)
 {
   g_last_error = STACK_OK;
 
@@ -234,7 +235,7 @@ stack_is_empty (const stack_t *stack)
 }
 
 bool
-stack_is_full (const stack_t *stack)
+stack_is_full (const cutils_stack_t *stack)
 {
   g_last_error = STACK_OK;
 
@@ -248,7 +249,7 @@ stack_is_full (const stack_t *stack)
 }
 
 bool
-stack_clear (stack_t *stack)
+stack_clear (cutils_stack_t *stack)
 {
   g_last_error = STACK_OK;
 
@@ -263,18 +264,19 @@ stack_clear (stack_t *stack)
 }
 
 size_t
-stack_memory_usage (const stack_t *stack)
+stack_memory_usage (const cutils_stack_t *stack)
 {
   if (stack == NULL)
     {
       g_last_error = STACK_NULL_PTR;
       return 0;
     }
-  return sizeof (stack_t) + (stack->capacity * stack->elem_size);
+  return sizeof (cutils_stack_t) + (stack->capacity * stack->elem_size);
 }
 
 bool
-stack_can_perform_operation (const stack_t *stack, size_t required_capacity)
+stack_can_perform_operation (const cutils_stack_t *stack,
+                             size_t required_capacity)
 {
   if (stack == NULL)
     {
