@@ -93,3 +93,29 @@ install(
   NAMESPACE cutils::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cutils
   FILE cutils-config.cmake)
+
+# tests build by default only when cutils is the top level project, not when
+# it's pulled in with add_subdirectory
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(CUTILS_TESTS_DEFAULT ON)
+else()
+  set(CUTILS_TESTS_DEFAULT OFF)
+endif()
+option(CUTILS_BUILD_TESTS "Build the cutils tests" ${CUTILS_TESTS_DEFAULT})
+
+if(CUTILS_BUILD_TESTS)
+  enable_testing()
+  set(CUTILS_TESTS allocator time)
+  foreach(module IN LISTS CUTILS_MODULES)
+    string(TOUPPER ${module} module_upper)
+    if(CUTILS_WITH_${module_upper})
+      list(APPEND CUTILS_TESTS ${module})
+    endif()
+  endforeach()
+  foreach(test IN LISTS CUTILS_TESTS)
+    add_executable(test_${test} tests/test_${test}.c)
+    target_link_libraries(test_${test} PRIVATE cutils)
+    target_compile_options(test_${test} PRIVATE -Wall -Wextra)
+    add_test(NAME ${test} COMMAND test_${test})
+  endforeach()
+endif()
