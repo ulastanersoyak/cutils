@@ -49,7 +49,7 @@ static_allocate (void *context, size_t size, size_t alignment)
   return ptr;
 }
 
-[[maybe_unused]] static void
+static void
 static_deallocate (void *context, void *ptr)
 {
   // Static allocation doesn't support deallocation
@@ -91,6 +91,16 @@ cutils_static_pool_init (cutils_static_pool_t *pool, void *memory, size_t size,
   pool->size = size;
   pool->used = 0;
   pool->alignment = alignment;
+}
+
+cutils_allocator_t
+cutils_static_pool_allocator (cutils_static_pool_t *pool)
+{
+  cutils_allocator_t allocator;
+  allocator.context = pool;
+  allocator.allocate = static_allocate;
+  allocator.deallocate = static_deallocate;
+  return allocator;
 }
 
 // containers keep a pointer to their allocator for their whole lifetime, so

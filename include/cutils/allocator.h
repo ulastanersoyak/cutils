@@ -26,6 +26,11 @@ typedef struct
 void cutils_static_pool_init (cutils_static_pool_t *pool, void *memory,
                               size_t size, size_t alignment);
 
+/* Allocator that hands out memory from pool. Works in either allocation
+   mode, so a container can use its own buffer instead of the default one.
+   The pool must outlive every container using it */
+cutils_allocator_t cutils_static_pool_allocator (cutils_static_pool_t *pool);
+
 /* Default allocator based on configuration. The returned pointer stays
    valid for the lifetime of the program, so it can be stored in containers */
 cutils_allocator_t *cutils_default_allocator (void);
