@@ -55,6 +55,7 @@ set(WARNING_FLAGS
 set(CUTILS_LIB_SOURCES src/allocator.c src/time.c)
 set(CUTILS_MODULES
     arena
+    bitset
     expected
     list
     map

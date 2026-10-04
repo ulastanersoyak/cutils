@@ -7,6 +7,7 @@
 
 #include "cutils/allocator.h"
 #include "cutils/arena.h"
+#include "cutils/bitset.h"
 #include "cutils/config.h"
 #include "cutils/expected.h"
 #include "cutils/list.h"
