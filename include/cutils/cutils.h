@@ -10,6 +10,7 @@
 #include "cutils/bitset.h"
 #include "cutils/config.h"
 #include "cutils/expected.h"
+#include "cutils/hashmap.h"
 #include "cutils/list.h"
 #include "cutils/map.h"
 #include "cutils/pool.h"

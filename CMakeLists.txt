@@ -57,6 +57,7 @@ set(CUTILS_MODULES
     arena
     bitset
     expected
+    hashmap
     list
     map
     pool
