@@ -3,6 +3,7 @@
 
 #include "cutils/allocator.h"
 #include "cutils/config.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -254,5 +255,40 @@ bool string_starts_with (const string_t *str, const char *prefix);
  * @return true if str ends with suffix, false otherwise or on error
  */
 bool string_ends_with (const string_t *str, const char *suffix);
+
+/* lets gcc and clang check format strings like they do for printf */
+#if defined(__GNUC__) || defined(__clang__)
+#define CUTILS_PRINTF_FORMAT(fmt, args)                                       \
+  __attribute__ ((format (printf, fmt, args)))
+#else
+#define CUTILS_PRINTF_FORMAT(fmt, args)
+#endif
+
+/**
+ * Appends printf style formatted text, growing the string as needed.
+ *
+ * @param str String to append to
+ * @param format printf format string
+ * @return true if successful, false otherwise
+ * @note Sets error to STRING_INVALID_ARG if the format can't be expanded
+ */
+bool string_append_format (string_t *str, const char *format, ...)
+    CUTILS_PRINTF_FORMAT (2, 3);
+
+/**
+ * Like string_append_format, taking a va_list.
+ */
+bool string_append_vformat (string_t *str, const char *format, va_list args)
+    CUTILS_PRINTF_FORMAT (2, 0);
+
+/**
+ * Creates a new string from printf style formatted text, using the default
+ * allocator.
+ *
+ * @param format printf format string
+ * @return Newly allocated string or NULL on error
+ */
+string_t *string_from_format (const char *format, ...)
+    CUTILS_PRINTF_FORMAT (1, 2);
 
 #endif // CUTILS_STRING_H

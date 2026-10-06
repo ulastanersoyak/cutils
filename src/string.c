@@ -2,7 +2,9 @@
 #include "cutils/config.h"
 #include "cutils/time.h"
 #include "internal/capacity.h"
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <threads.h>
 
@@ -476,4 +478,75 @@ string_ends_with (const string_t *str, const char *suffix)
   size_t len = strlen (suffix);
   return len <= str->length
          && memcmp (str->data + (str->length - len), suffix, len) == 0;
+}
+
+bool
+string_append_vformat (string_t *str, const char *format, va_list args)
+{
+  g_last_error = STRING_OK;
+
+  if (str == NULL || format == NULL)
+    {
+      g_last_error = STRING_INVALID_ARG;
+      return false;
+    }
+
+  // measure first, then write straight into the string's own buffer
+  va_list measure;
+  va_copy (measure, args);
+  int needed = vsnprintf (NULL, 0, format, measure);
+  va_end (measure);
+  if (needed < 0)
+    {
+      g_last_error = STRING_INVALID_ARG;
+      return false;
+    }
+
+  size_t len = (size_t)needed;
+  if (len >= SIZE_MAX - str->length)
+    {
+      g_last_error = STRING_OVERFLOW;
+      return false;
+    }
+
+  if (!resize_if_needed (str, str->length + len + 1, UINT32_MAX))
+    {
+      return false;
+    }
+
+  vsnprintf (str->data + str->length, len + 1, format, args);
+  str->length += len;
+  return true;
+}
+
+bool
+string_append_format (string_t *str, const char *format, ...)
+{
+  va_list args;
+  va_start (args, format);
+  bool result = string_append_vformat (str, format, args);
+  va_end (args);
+  return result;
+}
+
+string_t *
+string_from_format (const char *format, ...)
+{
+  string_t *str = string_create (0);
+  if (str == NULL)
+    {
+      return NULL;
+    }
+
+  va_list args;
+  va_start (args, format);
+  bool result = string_append_vformat (str, format, args);
+  va_end (args);
+
+  if (!result)
+    {
+      string_destroy (str);
+      return NULL;
+    }
+  return str;
 }

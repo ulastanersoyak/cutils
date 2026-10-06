@@ -47,9 +47,29 @@ test_string (void)
   string_destroy (s);
 }
 
+static void
+test_format (void)
+{
+  string_t *str = string_from_format ("%d-%s", 42, "x");
+  CHECK (str != NULL && strcmp (string_cstr (str), "42-x") == 0);
+  CHECK (string_append_format (str, " %05.1f|%c", 3.14159, 'z'));
+  CHECK (strcmp (string_cstr (str), "42-x 003.1|z") == 0);
+
+  // long enough to grow the buffer several times
+  for (int i = 0; i < 100; i++)
+    {
+      CHECK (string_append_format (str, "[%03d]", i));
+    }
+  CHECK (string_length (str) == 12 + 100 * 5);
+  CHECK (string_ends_with (str, "[099]"));
+  CHECK (!string_append_format (NULL, "x"));
+  string_destroy (str);
+}
+
 int
 main (void)
 {
   test_string ();
+  test_format ();
   return test_result ("string");
 }
