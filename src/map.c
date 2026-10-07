@@ -716,6 +716,68 @@ map_end (map_t *map)
   return it;
 }
 
+static map_iterator_t
+iterator_at (map_t *map, map_node_t *node)
+{
+  map_iterator_t it = { map, node, node != NULL };
+  return it;
+}
+
+map_iterator_t
+map_find (map_t *map, const void *key)
+{
+  if (map == NULL || key == NULL)
+    {
+      g_last_error = MAP_NULL_PTR;
+      return iterator_at (map, NULL);
+    }
+  return iterator_at (map, find_node (map, key));
+}
+
+// the lowest node whose key is >= key (or > key when strict is set)
+static map_node_t *
+bound (const map_t *map, const void *key, bool strict)
+{
+  map_node_t *best = NULL;
+  map_node_t *current = map->root;
+  while (current != NULL)
+    {
+      int cmp = map->compare (current->key, key);
+      if (cmp > 0 || (cmp == 0 && !strict))
+        {
+          best = current;
+          current = current->left;
+        }
+      else
+        {
+          current = current->right;
+        }
+    }
+  return best;
+}
+
+map_iterator_t
+map_lower_bound (map_t *map, const void *key)
+{
+  if (map == NULL || key == NULL)
+    {
+      g_last_error = MAP_NULL_PTR;
+      return iterator_at (map, NULL);
+    }
+  return iterator_at (map, bound (map, key, false));
+}
+
+map_iterator_t
+map_upper_bound (map_t *map, const void *key)
+{
+  if (map == NULL || key == NULL)
+    {
+      g_last_error = MAP_NULL_PTR;
+      return iterator_at (map, NULL);
+    }
+  return iterator_at (map, bound (map, key, true));
+}
+
 bool
 map_iterator_next (map_iterator_t *it)
 {

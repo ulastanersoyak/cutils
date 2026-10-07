@@ -207,6 +207,34 @@ map_iterator_t map_begin (map_t *map);
 map_iterator_t map_end (map_t *map);
 
 /**
+ * Gets an iterator at key.
+ *
+ * @param map Map to search
+ * @param key Key to look for
+ * @return Iterator at key, invalid if the key isn't present
+ */
+map_iterator_t map_find (map_t *map, const void *key);
+
+/**
+ * Gets an iterator at the first key that is not less than key. Together
+ * with map_iterator_next this walks a range of keys in order.
+ *
+ * @param map Map to search
+ * @param key Lower bound
+ * @return Iterator at the first key >= key, invalid if there is none
+ */
+map_iterator_t map_lower_bound (map_t *map, const void *key);
+
+/**
+ * Gets an iterator at the first key that is greater than key.
+ *
+ * @param map Map to search
+ * @param key Bound
+ * @return Iterator at the first key > key, invalid if there is none
+ */
+map_iterator_t map_upper_bound (map_t *map, const void *key);
+
+/**
  * Moves the iterator to the next element.
  *
  * @param it Iterator to move

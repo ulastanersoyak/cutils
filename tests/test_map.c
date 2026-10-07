@@ -124,10 +124,58 @@ test_map_stress (void)
   map_destroy (map);
 }
 
+static void
+test_ordered_queries (void)
+{
+  map_t *map = map_create (sizeof (int), sizeof (int), compare_ints);
+  // keys 0, 10, 20, ..., 90
+  for (int i = 0; i < 10; i++)
+    {
+      int key = i * 10;
+      CHECK (map_insert (map, &key, &i));
+    }
+
+  int key = 30;
+  int k;
+  int v;
+  map_iterator_t it = map_find (map, &key);
+  CHECK (map_iterator_get (&it, &k, &v) && k == 30 && v == 3);
+  key = 35;
+  it = map_find (map, &key);
+  CHECK (!map_iterator_is_valid (&it));
+
+  it = map_lower_bound (map, &key);
+  CHECK (map_iterator_get (&it, &k, &v) && k == 40);
+  key = 40;
+  it = map_lower_bound (map, &key);
+  CHECK (map_iterator_get (&it, &k, &v) && k == 40);
+  it = map_upper_bound (map, &key);
+  CHECK (map_iterator_get (&it, &k, &v) && k == 50);
+
+  // walk the range [15, 55)
+  key = 15;
+  int sum = 0;
+  for (it = map_lower_bound (map, &key);
+       map_iterator_get (&it, &k, &v) && k < 55; map_iterator_next (&it))
+    {
+      sum += k;
+    }
+  CHECK (sum == 20 + 30 + 40 + 50);
+
+  key = 90;
+  it = map_upper_bound (map, &key);
+  CHECK (!map_iterator_is_valid (&it));
+  key = -5;
+  it = map_lower_bound (map, &key);
+  CHECK (map_iterator_get (&it, &k, &v) && k == 0);
+  map_destroy (map);
+}
+
 int
 main (void)
 {
   test_map ();
   test_map_stress ();
+  test_ordered_queries ();
   return test_result ("map");
 }
